@@ -1,6 +1,5 @@
 import React from "react";
 import { Link } from "react-router";
-import { assets } from "../assets/frontend_assets/assets";
 
 const Footer = () => {
     return (
@@ -11,7 +10,7 @@ const Footer = () => {
                     {/* Brand Section - Takes more space */}
                     <div className="lg:col-span-5">
                         <Link to='/' className="inline-block mb-6">
-                            <img className="h-10" src={assets.logo} alt="Knight St. Vapes" />
+                            
                         </Link>
                         <h3 className="text-2xl font-bold mb-3 text-gray-900">
                             KnightSt. <span className="text-[#FFB81C]">Vapes</span>

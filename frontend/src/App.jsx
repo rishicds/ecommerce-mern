@@ -17,6 +17,7 @@ import PublicRoute from "./routes/PublicRoute";
 import PrivateRoute from "./routes/PrivateRoute";
 import RecentBlogs from "./components/recentblog";
 import LocationMap from "./components/locationMap";
+import FAQ from "./components/faq";
 
 
 const App = () => {
@@ -37,6 +38,7 @@ const App = () => {
         <Route path="/place-order" element={<PrivateRoute><PlaceOrder /></PrivateRoute>} />
       </Routes>
       <RecentBlogs />
+      <FAQ />
       <LocationMap />
       <Footer />
     </div>

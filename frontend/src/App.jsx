@@ -15,6 +15,8 @@ import SearchBar from "./components/SearchBar";
 import { ToastContainer } from 'react-toastify';
 import PublicRoute from "./routes/PublicRoute";
 import PrivateRoute from "./routes/PrivateRoute";
+import RecentBlogs from "./components/recentblog";
+import LocationMap from "./components/locationMap";
 
 
 const App = () => {
@@ -34,6 +36,8 @@ const App = () => {
         <Route path="/orders" element={<PrivateRoute><Orders /></PrivateRoute>} />
         <Route path="/place-order" element={<PrivateRoute><PlaceOrder /></PrivateRoute>} />
       </Routes>
+      <RecentBlogs />
+      <LocationMap />
       <Footer />
     </div>
   )

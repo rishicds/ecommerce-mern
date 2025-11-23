@@ -1,0 +1,23 @@
+{
+  "name": "vapeee-monorepo",
+  "version": "1.0.0",
+  "description": "Monorepo for Vapeee ecommerce application",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "install-all": "pnpm install -r",
+    "dev": "pnpm run dev -r",
+    "build": "pnpm run build -r",
+    "build-backend": "cd backend && pnpm install",
+    "build-frontend": "cd frontend && pnpm install && pnpm run build",
+    "build-admin": "cd admin && pnpm install && pnpm run build",
+    "start-backend": "cd backend && pnpm start",
+    "start-frontend": "cd frontend && pnpm run dev",
+    "start-admin": "cd admin && pnpm run dev"
+  },
+  "workspaces": [
+    "backend",
+    "frontend",
+    "admin"
+  ]
+}

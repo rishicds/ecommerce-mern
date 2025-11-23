@@ -1,0 +1,42 @@
+services:
+  - type: web
+    name: backend
+    runtime: node
+    plan: free
+    buildCommand: cd backend && pnpm install
+    startCommand: cd backend && pnpm start
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_SECRET_KEY
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: ADMIN_URL
+        sync: false
+
+  - type: static site
+    name: frontend
+    buildCommand: cd frontend && pnpm install && pnpm run build
+    staticPublishPath: frontend/dist
+    envVars:
+      - key: VITE_BACKEND_URL
+        sync: false
+
+  - type: static site
+    name: admin
+    buildCommand: cd admin && pnpm install && pnpm run build
+    staticPublishPath: admin/dist
+    envVars:
+      - key: VITE_BACKEND_URL
+        sync: false

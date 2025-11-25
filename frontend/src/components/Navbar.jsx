@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
     const [visible, setVisible] = useState(false);
+    const [mobileSearchVisible, setMobileSearchVisible] = useState(false);
     const { setShowSearch, getCartCount } = useShop();
     const { logout, user, navigate } = useAuth();
     const [query, setQuery] = useState('');
@@ -37,48 +38,54 @@ const Navbar = () => {
     const cartCount = getCartCount();
 
     return (
-        <div className='bg-white shadow-sm sticky top-0 z-50'>
+        <div className='bg-white sticky top-0 z-50'>
             {/* Health Canada warning banner (black & white) - full width */}
-            <div className='relative left-1/2 -translate-x-1/2 w-screen bg-black text-white text-center text-[11px] sm:text-[12px] py-1 border-b border-gray-800'>
-                Vaping products contain nicotine, a highly addictive chemical. Health Canada
-            </div>
-            {/* Shipping update banner (red & white) */}
-            <div className='relative left-1/2 -translate-x-1/2 w-screen bg-red-900 text-white text-[11px] sm:text-[12px] py-1 border-b border-red-700'>
-                <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center'>
-                    ⚠️ Shipping Update: Canada Post Strike — Alternate Carriers Now in Use. For More Information, <Link to="/shipping-info" className='underline font-semibold text-white'>Click Here</Link>. ⚠️ Due to the strike, some online packages may be delayed. We’re still shipping daily, and if your package is affected, we’ll work with you to make it right.
+            <div className='relative left-1/2 -translate-x-1/2 w-screen bg-black text-white text-center text-xs sm:text-sm py-1 border-b border-gray-800'>
+                <div className='max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 text-center'>
+                    Vaping products contain nicotine, a highly addictive chemical. Health Canada
                 </div>
             </div>
+            {/* Shipping update banner (red & white) */}
+            <div className='relative left-1/2 -translate-x-1/2 w-screen bg-red-900 text-white text-xs sm:text-sm py-1 border-b border-red-700'>
+                <div className='max-w-7xl mx-auto px-2 sm:px-6 lg:px-8'>
+                    <div className='text-center text-xs sm:text-sm'>
+                        ⚠️ Shipping Update: Canada Post Strike — Alternate Carriers Now in Use. For More Information, <Link to="/shipping-info" className='underline font-semibold text-white'>Click Here</Link>. ⚠️ Due to the strike, some online packages may be delayed. We’re still shipping daily, and if your package is affected, we’ll work with you to make it right.
+                    </div>
+                </div>
+            </div>
+
             <div className='relative left-1/2 -translate-x-1/2 w-screen bg-white'>
                 <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
-                    <div className='flex items-center justify-between text-[11px] sm:text-[12px] text-gray-700 py-2'>
-                        <div className='flex items-center gap-3'>
+                    <div className='flex flex-col sm:flex-row items-center justify-between text-xs sm:text-sm text-gray-700 py-2 gap-2'>
+                        <div className='flex items-center gap-3 text-center sm:text-left'>
                             <span className='leading-none'>🚚</span>
-                            <span className='whitespace-nowrap'>Next Day Delivery Now Available In The Greater Vancouver Area</span>
+                            <span className='whitespace-normal'>Next Day Delivery Now Available In The Greater Vancouver Area</span>
                         </div>
-                        <div className='flex items-center gap-3 justify-end'>
+                        <div className='flex items-center gap-3 justify-center sm:justify-end text-center sm:text-right'>
                             <span className='leading-none'>📦</span>
-                            <span className='whitespace-nowrap'>Free Shipping On Orders Over $125 · $10 Flat Rate Shipping Under $125 within BC</span>
+                            <span className='whitespace-normal'>Free Shipping On Orders Over $125 · $10 Flat Rate Shipping Under $125 within BC</span>
                         </div>
                     </div>
                 </div>
             </div>
-            <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
-                {/* Top navigation */}
-                <div className='flex items-center justify-between py-4 font-medium'>
+            <div className='relative left-1/2 -translate-x-1/2 w-screen bg-white'>
+                <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
+                    {/* Top navigation */}
+                    <div className='flex flex-wrap items-center justify-between py-4 font-medium'>
                     <Link to='/' className='flex items-center'>
-                        <h1 className='text-2xl font-bold text-[#FFB81C]'>Knight St. Vape</h1>
+                        <h1 className='text-xl sm:text-2xl font-bold text-[#FFB81C]'>Knight St. Vape</h1>
                     </Link>
 
                     {/* Desktop controls (brand + icons). Nav links moved below header */}
                     <div className='hidden sm:flex items-center gap-6'>
-                        <div className='relative'>
+                        <div className='relative w-full'>
                             <input
                                 type='text'
                                 placeholder='Search products...'
                                 value={query}
                                 onChange={e => { setQuery(e.target.value); scheduleSearch(e.target.value); }}
                                 onKeyDown={e => { if (e.key === 'Enter') handleSearch(); }}
-                                className='w-64 md:w-[36rem] lg:w-[48rem] px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-[#FFB81C]'
+                                className='w-full max-w-lg md:max-w-2xl lg:max-w-4xl px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-[#FFB81C]'
                                 aria-label='Search products'
                             />
                             <button
@@ -93,7 +100,14 @@ const Navbar = () => {
 
                     {/* Icons - Search, Profile, Cart, Hamburger */}
                     <div className='flex items-center gap-6'>
-                        {/* search icon removed from header (kept in input for desktop and separate search UI) */}
+                        {/* Mobile search toggle (visible on small screens) */}
+                        <button
+                            onClick={() => setMobileSearchVisible(v => !v)}
+                            className='sm:hidden w-6 h-6 flex items-center justify-center hover:opacity-70 transition-opacity'
+                            aria-label='Open search'
+                        >
+                            <img src={assets.search_icon} alt="search" className='w-5' />
+                        </button>
 
                         <div className='group relative'>
                             <button
@@ -152,10 +166,28 @@ const Navbar = () => {
                         </button>
                     </div>
                 </div>
+                </div>
             </div>
 
+            {/* Mobile search input (collapsible) */}
+            {mobileSearchVisible && (
+                <div className='sm:hidden px-4 pb-3'>
+                    <div className='w-full'>
+                        <input
+                            type='text'
+                            placeholder='Search products...'
+                            value={query}
+                            onChange={e => { setQuery(e.target.value); scheduleSearch(e.target.value); }}
+                            onKeyDown={e => { if (e.key === 'Enter') handleSearch(); }}
+                            className='w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-[#FFB81C]'
+                            aria-label='Search products'
+                        />
+                    </div>
+                </div>
+            )}
+
             {/* Nav links below header (desktop) */}
-            <div className='border-t border-gray-100 bg-white'>
+            <div className='bg-white'>
                 <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
                     <nav className='hidden sm:flex items-center justify-center gap-8 text-sm font-medium py-2'>
                         <NavLink to="/" className="flex flex-col items-center gap-1 group">

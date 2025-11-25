@@ -6,6 +6,11 @@
     font-family: Outfit;
 }
 
+body{
+  margin: 0;
+  overflow-x: hidden;
+}
+
 .prata-regular {
     font-family: "Prata", serif;
     font-weight: 400;

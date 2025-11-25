@@ -13,14 +13,14 @@ function Contact() {
                 <img className='w-full md:max-w-[480px]' src={assets.contact_img} />
                 <div className='flex flex-col justify-center items-start gap-6'>
                     <p className='font-semibold text-xl text-gray-600'>Location</p>
-                    <p className='text-gray-500'>1365 E 41st Ave <br /> Vancouver, BC V5W 1R7</p>
+                    <p className='text-gray-500'>1365 East 41st<br />Vancouver, BC, V5W1R7</p>
                     <p className='font-semibold text-xl text-gray-600'>Phone</p>
-                    <p className='text-gray-500'>+1 (604) 559-7833</p>
+                    <p className='text-gray-500'>6045597833</p>
                     <p className='font-semibold text-xl text-gray-600'>Email</p>
-                    <p className='text-gray-500'>abc@gmail.com</p>
+                    <p className='text-gray-500'>Knightstvapeshop@gmail.com</p>
                     <p className='font-semibold text-xl text-gray-600'></p>
                     <p className='text-gray-500'></p>
-                    <button className='border border-black px-8 py-4 text-sm hover:bg-black hover:text-white transition-all duration-500'>Explore Job</button>
+                    <button className='border border-black px-8 py-4 text-sm hover:bg-black hover:text-white transition-all duration-500'>Reach Out</button>
                 </div>
             </div>
             <NewsletterBox />

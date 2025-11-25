@@ -9,6 +9,14 @@ import ProductItem from '../components/ProductItem';
 const initialState = {
     category: [],
     subCategory: [],
+    brand: [],
+    collection: [],
+    flavour: [],
+    flavourType: [],
+    priceRange: [],
+    nicotine: [],
+    options: [],
+    type: [],
     showFilter: false,
     filterProducts: [],
     sortOrder: 'relevant',
@@ -20,6 +28,22 @@ const reducer = (state, action) => {
             return { ...state, category: toggleItem(state.category, action.payload) };
         case 'TOGGLE_SUBCATEGORY':
             return { ...state, subCategory: toggleItem(state.subCategory, action.payload) };
+        case 'TOGGLE_BRAND':
+            return { ...state, brand: toggleItem(state.brand, action.payload) };
+        case 'TOGGLE_COLLECTION':
+            return { ...state, collection: toggleItem(state.collection, action.payload) };
+        case 'TOGGLE_FLAVOUR':
+            return { ...state, flavour: toggleItem(state.flavour, action.payload) };
+        case 'TOGGLE_FLAVOURTYPE':
+            return { ...state, flavourType: toggleItem(state.flavourType, action.payload) };
+        case 'TOGGLE_PRICE':
+            return { ...state, priceRange: toggleItem(state.priceRange, action.payload) };
+        case 'TOGGLE_NICOTINE':
+            return { ...state, nicotine: toggleItem(state.nicotine, action.payload) };
+        case 'TOGGLE_OPTIONS':
+            return { ...state, options: toggleItem(state.options, action.payload) };
+        case 'TOGGLE_TYPE':
+            return { ...state, type: toggleItem(state.type, action.payload) };
         case 'SET_FILTER_PRODUCTS':
             return { ...state, filterProducts: action.payload };
         case 'SET_SHOW_FILTER':
@@ -50,7 +74,7 @@ const sortProducts = (productsToSort, sortOrder) => {
 function Collection() {
     const { products, search, showSearch } = useShop();
     const [state, dispatch] = useReducer(reducer, initialState);
-    const { category, subCategory, showFilter, filterProducts, sortOrder } = state;
+    const { category, subCategory, brand, collection, flavour, flavourType, priceRange, nicotine, options, type, showFilter, filterProducts, sortOrder } = state;
     const location = useLocation();
 
     const qParam = useMemo(() => {
@@ -71,6 +95,38 @@ function Collection() {
 
     const memoizedProducts = useMemo(() => products, [products]);
 
+    // Derive available filter options from product list
+    const brands = useMemo(() => {
+        const set = new Set();
+        memoizedProducts.forEach(p => { if (p.brand) set.add(p.brand); });
+        return Array.from(set).sort();
+    }, [memoizedProducts]);
+
+    const collections = useMemo(() => {
+        const set = new Set();
+        memoizedProducts.forEach(p => {
+            if (p.category) set.add(p.category);
+            if (Array.isArray(p.categories)) p.categories.forEach(c => c && set.add(c));
+        });
+        return Array.from(set).sort();
+    }, [memoizedProducts]);
+
+    const flavours = useMemo(() => {
+        const set = new Set();
+        memoizedProducts.forEach(p => { if (p.flavour) set.add(p.flavour); });
+        return Array.from(set).sort();
+    }, [memoizedProducts]);
+
+    const types = useMemo(() => {
+        const set = new Set();
+        memoizedProducts.forEach(p => { if (p.subCategory) set.add(p.subCategory); if (p.type) set.add(p.type); });
+        return Array.from(set).sort();
+    }, [memoizedProducts]);
+
+    const priceRanges = ['Under $20', '$20 - $50', 'Above $50'];
+    const nicotineLevels = ['Low', 'Medium', 'High'];
+    const optionItems = ['Popular', 'New', 'On Sale'];
+
     const handleToggle = (type, value) => {
         dispatch({ type, payload: value });
     };
@@ -87,6 +143,61 @@ function Collection() {
             }
             if (subCategory.length) {
                 filtered = filtered.filter(item => subCategory.includes(item.subCategory));
+            }
+            // filter by brand
+            if (brand && brand.length) {
+                filtered = filtered.filter(item => brand.includes(item.brand));
+            }
+            // filter by collection (category / categories)
+            if (collection && collection.length) {
+                filtered = filtered.filter(item => {
+                    if (!item) return false;
+                    if (item.category && collection.includes(item.category)) return true;
+                    if (Array.isArray(item.categories)) return item.categories.some(c => collection.includes(c));
+                    return false;
+                });
+            }
+            // filter by flavour
+            if (flavour && flavour.length) {
+                filtered = filtered.filter(item => item.flavour && flavour.includes(item.flavour));
+            }
+            // filter by flavourType (best-effort: check `flavour` or `description`)
+            if (flavourType && flavourType.length) {
+                const ftLower = flavourType.map(f => f.toLowerCase());
+                filtered = filtered.filter(item => {
+                    const txt = `${item.flavour || ''} ${item.description || ''}`.toLowerCase();
+                    return ftLower.some(f => txt.includes(f));
+                });
+            }
+            // filter by price ranges
+            if (priceRange && priceRange.length) {
+                filtered = filtered.filter(item => {
+                    const price = Number(item.price || 0);
+                    return priceRange.some(pr => {
+                        if (pr === 'Under $20') return price < 20;
+                        if (pr === '$20 - $50') return price >= 20 && price <= 50;
+                        if (pr === 'Above $50') return price > 50;
+                        return false;
+                    });
+                });
+            }
+            // filter by nicotine (best-effort: match `nicotine` or `nicotineHit` property)
+            if (nicotine && nicotine.length) {
+                filtered = filtered.filter(item => {
+                    const val = (item.nicotine || item.nicotineHit || '').toString().toLowerCase();
+                    return nicotine.some(n => val.includes(n.toLowerCase()));
+                });
+            }
+            // filter by options (best-effort: check tags or flags)
+            if (options && options.length) {
+                filtered = filtered.filter(item => {
+                    const txt = `${item.tags || ''} ${item.description || ''} ${(item.other || '')}`.toLowerCase();
+                    return options.some(op => txt.includes(op.toLowerCase()));
+                });
+            }
+            // filter by type
+            if (type && type.length) {
+                filtered = filtered.filter(item => (item.subCategory && type.includes(item.subCategory)) || (item.type && type.includes(item.type)));
             }
             // support searching across name, brand, category, subCategory, description and variants
             if (activeQuery) {
@@ -140,21 +251,63 @@ function Collection() {
                     />
                 </p>
 
-                {/* Category Filter */}
-                <div className={`border border-gray-300 pl-5 py-3 mt-6 ${showFilter ? '' : 'hidden'} sm:block`}>
-                    <p className="mb-3 font-medium text-sm">CATEGORIES</p>
+                {/* Shop By Brand */}
+                <div className={`border border-gray-300 pl-5 py-3 mt-4 ${showFilter ? '' : 'hidden'} sm:block`}>
+                    <p className="mb-3 font-medium text-sm">Shop By Brand</p>
                     <div className="flex flex-col gap-2 text-sm font-light text-gray-700">
-                        {['Accessories', 'Device Type', 'Brand'].map(label => {
-                            const id = `category-${label}`;
+                        {brands.length ? brands.map(label => {
+                            const id = `brand-${label}`;
                             return (
                                 <div key={label} className="flex gap-2 items-center">
-                                    <input
-                                        id={id}
-                                        type="checkbox"
-                                        value={label}
-                                        onChange={(e) => handleToggle('TOGGLE_CATEGORY', e.target.value)}
-                                        className="w-3"
-                                    />
+                                    <input id={id} type="checkbox" value={label} onChange={(e) => handleToggle('TOGGLE_BRAND', e.target.value)} className="w-3" />
+                                    <label htmlFor={id}>{label}</label>
+                                </div>
+                            );
+                        }) : <div className="text-xs text-gray-500">No brands</div>}
+                    </div>
+                </div>
+
+                {/* Collection */}
+                <div className={`border border-gray-300 pl-5 py-3 mt-4 ${showFilter ? '' : 'hidden'} sm:block`}>
+                    <p className="mb-3 font-medium text-sm">Collection</p>
+                    <div className="flex flex-col gap-2 text-sm font-light text-gray-700">
+                        {collections.length ? collections.map(label => {
+                            const id = `collection-${label}`;
+                            return (
+                                <div key={label} className="flex gap-2 items-center">
+                                    <input id={id} type="checkbox" value={label} onChange={(e) => handleToggle('TOGGLE_COLLECTION', e.target.value)} className="w-3" />
+                                    <label htmlFor={id}>{label}</label>
+                                </div>
+                            );
+                        }) : <div className="text-xs text-gray-500">No collections</div>}
+                    </div>
+                </div>
+
+                {/* Shop By Flavour */}
+                <div className={`border border-gray-300 pl-5 py-3 mt-4 ${showFilter ? '' : 'hidden'} sm:block`}>
+                    <p className="mb-3 font-medium text-sm">Shop By Flavour</p>
+                    <div className="flex flex-col gap-2 text-sm font-light text-gray-700">
+                        {flavours.length ? flavours.map(label => {
+                            const id = `flavour-${label}`;
+                            return (
+                                <div key={label} className="flex gap-2 items-center">
+                                    <input id={id} type="checkbox" value={label} onChange={(e) => handleToggle('TOGGLE_FLAVOUR', e.target.value)} className="w-3" />
+                                    <label htmlFor={id}>{label}</label>
+                                </div>
+                            );
+                        }) : <div className="text-xs text-gray-500">No flavours</div>}
+                    </div>
+                </div>
+
+                {/* Flavour Type */}
+                <div className={`border border-gray-300 pl-5 py-3 mt-4 ${showFilter ? '' : 'hidden'} sm:block`}>
+                    <p className="mb-3 font-medium text-sm">Flavour Type</p>
+                    <div className="flex flex-col gap-2 text-sm font-light text-gray-700">
+                        {['Dessert', 'Fruity', 'Menthol', 'Tobacco'].map(label => {
+                            const id = `flavourtype-${label}`;
+                            return (
+                                <div key={label} className="flex gap-2 items-center">
+                                    <input id={id} type="checkbox" value={label} onChange={(e) => handleToggle('TOGGLE_FLAVOURTYPE', e.target.value)} className="w-3" />
                                     <label htmlFor={id}>{label}</label>
                                 </div>
                             );
@@ -162,25 +315,67 @@ function Collection() {
                     </div>
                 </div>
 
-                {/* SubCategory Filter */}
-                <div className={`border border-gray-300 pl-5 py-3 mt-6 my-5 ${showFilter ? '' : 'hidden'} sm:block`}>
-                    <p className="mb-3 text-sm font-medium">TYPE</p>
+                {/* Shop By Price */}
+                <div className={`border border-gray-300 pl-5 py-3 mt-4 ${showFilter ? '' : 'hidden'} sm:block`}>
+                    <p className="mb-3 font-medium text-sm">Shop By Price</p>
                     <div className="flex flex-col gap-2 text-sm font-light text-gray-700">
-                        {['Price', 'Flavor', 'Brand'].map(label => {
-                            const id = `subcategory-${label}`;
+                        {priceRanges.map(label => {
+                            const id = `price-${label}`;
                             return (
                                 <div key={label} className="flex gap-2 items-center">
-                                    <input
-                                        id={id}
-                                        type="checkbox"
-                                        value={label}
-                                        onChange={(e) => handleToggle('TOGGLE_SUBCATEGORY', e.target.value)}
-                                        className="w-3"
-                                    />
+                                    <input id={id} type="checkbox" value={label} onChange={(e) => handleToggle('TOGGLE_PRICE', e.target.value)} className="w-3" />
                                     <label htmlFor={id}>{label}</label>
                                 </div>
                             );
                         })}
+                    </div>
+                </div>
+
+                {/* Nicotine Hit */}
+                <div className={`border border-gray-300 pl-5 py-3 mt-4 ${showFilter ? '' : 'hidden'} sm:block`}>
+                    <p className="mb-3 font-medium text-sm">Nicotine Hit</p>
+                    <div className="flex flex-col gap-2 text-sm font-light text-gray-700">
+                        {nicotineLevels.map(label => {
+                            const id = `nic-${label}`;
+                            return (
+                                <div key={label} className="flex gap-2 items-center">
+                                    <input id={id} type="checkbox" value={label} onChange={(e) => handleToggle('TOGGLE_NICOTINE', e.target.value)} className="w-3" />
+                                    <label htmlFor={id}>{label}</label>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* Options */}
+                <div className={`border border-gray-300 pl-5 py-3 mt-4 ${showFilter ? '' : 'hidden'} sm:block`}>
+                    <p className="mb-3 font-medium text-sm">Options</p>
+                    <div className="flex flex-col gap-2 text-sm font-light text-gray-700">
+                        {optionItems.map(label => {
+                            const id = `opt-${label}`;
+                            return (
+                                <div key={label} className="flex gap-2 items-center">
+                                    <input id={id} type="checkbox" value={label} onChange={(e) => handleToggle('TOGGLE_OPTIONS', e.target.value)} className="w-3" />
+                                    <label htmlFor={id}>{label}</label>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* Shop By Type */}
+                <div className={`border border-gray-300 pl-5 py-3 mt-4 mb-6 ${showFilter ? '' : 'hidden'} sm:block`}>
+                    <p className="mb-3 font-medium text-sm">Shop By Type</p>
+                    <div className="flex flex-col gap-2 text-sm font-light text-gray-700">
+                        {types.length ? types.map(label => {
+                            const id = `type-${label}`;
+                            return (
+                                <div key={label} className="flex gap-2 items-center">
+                                    <input id={id} type="checkbox" value={label} onChange={(e) => handleToggle('TOGGLE_TYPE', e.target.value)} className="w-3" />
+                                    <label htmlFor={id}>{label}</label>
+                                </div>
+                            );
+                        }) : <div className="text-xs text-gray-500">No types</div>}
                     </div>
                 </div>
             </div>

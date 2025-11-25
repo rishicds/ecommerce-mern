@@ -34,8 +34,34 @@ const Navbar = () => {
         return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
     }, []);
     
+    const cartCount = getCartCount();
+
     return (
         <div className='bg-white shadow-sm sticky top-0 z-50'>
+            {/* Health Canada warning banner (black & white) - full width */}
+            <div className='relative left-1/2 -translate-x-1/2 w-screen bg-black text-white text-center text-[11px] sm:text-[12px] py-1 border-b border-gray-800'>
+                Vaping products contain nicotine, a highly addictive chemical. Health Canada
+            </div>
+            {/* Shipping update banner (red & white) */}
+            <div className='relative left-1/2 -translate-x-1/2 w-screen bg-red-900 text-white text-[11px] sm:text-[12px] py-1 border-b border-red-700'>
+                <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center'>
+                    ⚠️ Shipping Update: Canada Post Strike — Alternate Carriers Now in Use. For More Information, <Link to="/shipping-info" className='underline font-semibold text-white'>Click Here</Link>. ⚠️ Due to the strike, some online packages may be delayed. We’re still shipping daily, and if your package is affected, we’ll work with you to make it right.
+                </div>
+            </div>
+            <div className='relative left-1/2 -translate-x-1/2 w-screen bg-white'>
+                <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
+                    <div className='flex items-center justify-between text-[11px] sm:text-[12px] text-gray-700 py-2'>
+                        <div className='flex items-center gap-3'>
+                            <span className='leading-none'>🚚</span>
+                            <span className='whitespace-nowrap'>Next Day Delivery Now Available In The Greater Vancouver Area</span>
+                        </div>
+                        <div className='flex items-center gap-3 justify-end'>
+                            <span className='leading-none'>📦</span>
+                            <span className='whitespace-nowrap'>Free Shipping On Orders Over $125 · $10 Flat Rate Shipping Under $125 within BC</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
                 {/* Top navigation */}
                 <div className='flex items-center justify-between py-4 font-medium'>
@@ -52,7 +78,7 @@ const Navbar = () => {
                                 value={query}
                                 onChange={e => { setQuery(e.target.value); scheduleSearch(e.target.value); }}
                                 onKeyDown={e => { if (e.key === 'Enter') handleSearch(); }}
-                                className='w-64 px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-[#FFB81C]'
+                                className='w-64 md:w-[36rem] lg:w-[48rem] px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-[#FFB81C]'
                                 aria-label='Search products'
                             />
                             <button
@@ -67,16 +93,7 @@ const Navbar = () => {
 
                     {/* Icons - Search, Profile, Cart, Hamburger */}
                     <div className='flex items-center gap-6'>
-                        <button
-                            onClick={() => {
-                                setShowSearch(true);
-                                navigate("/collection");
-                            }}
-                            className='w-5 h-5 flex items-center justify-center hover:opacity-70 transition-opacity'
-                            aria-label="Search"
-                        >
-                            <img className='w-5' src={assets.search_icon} alt="search icon" />
-                        </button>
+                        {/* search icon removed from header (kept in input for desktop and separate search UI) */}
 
                         <div className='group relative'>
                             <button
@@ -113,11 +130,15 @@ const Navbar = () => {
                             )}
                         </div>
 
-                        <Link to="/cart" className="relative hover:opacity-70 transition-opacity">
-                            <img className='w-5 min-w-5' src={assets.cart_icon} alt="cart icon" />
-                            {getCartCount() > 0 && (
-                                <span className='absolute -right-1.5 -bottom-1.5 w-5 h-5 text-center flex items-center justify-center bg-[#FFB81C] text-white rounded-full text-[10px] font-semibold shadow-sm'>
-                                    {getCartCount()}
+                        <Link
+                            to="/cart"
+                            aria-label={`Cart with ${cartCount} items`}
+                            className={`relative transition-transform duration-200 flex items-center justify-center ${cartCount > 0 ? 'hover:scale-105 ring-2 ring-offset-1 ring-[#FFB81C] rounded-full' : 'hover:opacity-80'}`}
+                        >
+                            <img className='w-6 min-w-6' src={assets.cart_icon} alt="cart icon" />
+                            {cartCount > 0 && (
+                                <span className='absolute -right-2 -bottom-2 w-6 h-6 flex items-center justify-center bg-[#FFB81C] text-white rounded-full text-[10px] sm:text-xs font-semibold shadow-md animate-pulse'>
+                                    {cartCount}
                                 </span>
                             )}
                         </Link>

@@ -74,7 +74,7 @@ const List = () => {
         <>
             <p className="mb-2">All Products List</p>
             <div className="flex flex-col gap-2">
-                <div className="hidden md:grid grid-cols-[0.5fr_2fr_1fr_1fr_1fr_1fr_1fr] items-center py-1 px-2 border border-gray-200 bg-gray-100 text-sm">
+                <div className="hidden md:grid grid-cols-[0.5fr_3fr_1fr_1fr_1fr_1fr_1fr_1fr] items-center py-1 px-2 border border-gray-200 bg-gray-100 text-sm">
                     <b></b>
                     <b>Name</b>
                     <b>Price</b>
@@ -82,6 +82,7 @@ const List = () => {
                     <b>In Stock</b>
                     <b>Stock Count</b>
                     <b className="text-center">Show on POS</b>
+                    <b className="text-center">Actions</b>
                 </div>
 
                         {products.map((product, index) => {
@@ -90,7 +91,7 @@ const List = () => {
                         <div
                             key={product._id}
                             ref={isLast ? lastProductRef : null}
-                                    className="grid grid-cols-[0.5fr_3fr_1fr_1fr_1fr_1fr_1fr] items-center gap-2 py-1 px-2 border border-gray-200 text-sm"
+                                    className="grid grid-cols-[0.5fr_3fr_1fr_1fr_1fr_1fr_1fr_1fr] items-center gap-2 py-1 px-2 border border-gray-200 text-sm"
                         >
                                     <div>
                                         <input type="checkbox" />
@@ -101,6 +102,19 @@ const List = () => {
                                     <p>{product.inStock ? 'Yes' : 'No'}</p>
                                     <p>{product.stockCount ?? 0}</p>
                                     <p className="text-center">{product.showOnPOS ? 'Yes' : 'No'}</p>
+                                    <div className="flex items-center justify-center gap-2">
+                                        <button
+                                            onClick={async () => {
+                                                const ok = window.confirm('Delete this product? This action cannot be undone.');
+                                                if (!ok) return;
+                                                await removeProduct(product._id);
+                                            }}
+                                            className="px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700"
+                                            aria-label={`Delete product ${product.name}`}
+                                        >
+                                            Delete
+                                        </button>
+                                    </div>
                         </div>
                     );
                 })}

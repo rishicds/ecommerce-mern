@@ -2,6 +2,9 @@ import React from "react";
 import { Link } from "react-router";
 
 const Footer = () => {
+    const scrollToTop = () => {
+        try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (e) { window.scrollTo(0,0); }
+    };
     return (
         <footer className="bg-gradient-to-b from-white to-gray-50 mt-20">
             {/* Main Footer Content */}
@@ -9,7 +12,7 @@ const Footer = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-12 lg:gap-8">
                     {/* Brand Section - Takes more space */}
                     <div className="lg:col-span-5">
-                        <Link to='/' className="inline-block mb-6">
+                        <Link to='/' onClick={scrollToTop} className="inline-block mb-6">
                             
                         </Link>
                         <h3 className="text-2xl font-bold mb-3 text-gray-900">
@@ -81,7 +84,8 @@ const Footer = () => {
                             ].map((link) => (
                                 <li key={link.to}>
                                     <Link 
-                                        to={link.to} 
+                                        to={link.to}
+                                        onClick={scrollToTop}
                                         className="text-sm text-gray-600 hover:text-[#FFB81C] hover:translate-x-1 transition-all inline-flex items-center group"
                                     >
                                         <span className="w-1.5 h-1.5 bg-gray-400 rounded-full mr-2 group-hover:bg-[#FFB81C] transition-colors"></span>
@@ -106,7 +110,8 @@ const Footer = () => {
                             ].map((link) => (
                                 <li key={link.to}>
                                     <Link 
-                                        to={link.to} 
+                                        to={link.to}
+                                        onClick={scrollToTop}
                                         className="text-sm text-gray-600 hover:text-[#FFB81C] hover:translate-x-1 transition-all inline-flex items-center group"
                                     >
                                         <span className="w-1.5 h-1.5 bg-gray-400 rounded-full mr-2 group-hover:bg-[#FFB81C] transition-colors"></span>

@@ -68,18 +68,29 @@ const Categories = () => {
     <div>
       <h2 className="text-xl mb-4">Categories</h2>
 
-      <form onSubmit={onCreate} className="flex gap-2 mb-4">
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Category Name" className="px-3 py-2 border" />
-        <button type="submit" className="px-3 py-2 bg-black text-white" disabled={loading}>{loading ? 'Creating...' : 'Create'}</button>
+      <form onSubmit={onCreate} className="flex flex-col sm:flex-row gap-2 mb-4">
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Category Name"
+          className="px-3 py-2 border w-full sm:w-auto flex-1"
+        />
+        <button
+          type="submit"
+          className="px-3 py-2 bg-black text-white w-full sm:w-auto"
+          disabled={loading}
+        >
+          {loading ? 'Creating...' : 'Create'}
+        </button>
       </form>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm min-w-[640px]">
           <thead>
             <tr className="text-left border-b">
-              <th className="px-2 py-2">Select</th>
+              <th className="px-2 py-2 hidden sm:table-cell">Select</th>
               <th className="px-2 py-2">Category Name</th>
-              <th className="px-2 py-2">Category ID</th>
+              <th className="px-2 py-2 hidden md:table-cell">Category ID</th>
               <th className="px-2 py-2">Items</th>
               <th className="px-2 py-2">Action</th>
             </tr>
@@ -87,11 +98,18 @@ const Categories = () => {
           <tbody>
             {categories.map(cat => (
               <tr key={cat._id} className="border-b">
-                <td className="px-2 py-2"><input type="checkbox" /></td>
-                <td className="px-2 py-2">{cat.name}</td>
-                <td className="px-2 py-2">{cat.categoryId}</td>
+                <td className="px-2 py-2 hidden sm:table-cell"><input type="checkbox" /></td>
+                <td className="px-2 py-2 break-words">{cat.name}</td>
+                <td className="px-2 py-2 hidden md:table-cell">{cat.categoryId}</td>
                 <td className="px-2 py-2">{cat.items}</td>
-                <td className="px-2 py-2"><button onClick={() => onDelete(cat._id)} className="text-red-600">Delete</button></td>
+                <td className="px-2 py-2">
+                  <button
+                    onClick={() => onDelete(cat._id)}
+                    className="text-red-600 inline-flex items-center justify-center px-3 py-1.5 rounded-sm"
+                  >
+                    Delete
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>

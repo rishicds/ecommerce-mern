@@ -6,6 +6,7 @@ const Sidebar = () => {
     const items = [
         { to: '/add', icon: assets.add_icon, label: 'Add Items' },
         { to: '/list', icon: assets.order_icon, label: 'List Items' },
+        { to: '/settings', icon: assets.add_icon, label: 'Settings' },
         { to: '/orders', icon: assets.order_icon, label: 'Orders' },
         { to: '/categories', icon: assets.order_icon, label: 'Categories' },
     ];

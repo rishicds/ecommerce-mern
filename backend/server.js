@@ -10,6 +10,7 @@ import adminRouter from './routes/adminRoute.js';
 import cartRoute from './routes/cartRoute.js';
 import orderRoute from './routes/orderRoute.js';
 import categoryRoute from './routes/categoryRoute.js';
+import settingsRoute from './routes/settingsRoute.js';
 
 // App Config
 const app = express();
@@ -45,6 +46,7 @@ app.use('/api/admin', adminRouter);
 app.use('/api/category', categoryRoute);
 app.use('/api/cart/', cartRoute);
 app.use('/api/order', orderRoute);
+app.use('/api/settings', settingsRoute);
 
 app.listen(PORT, () => {
     console.log(`Server started on port ${PORT}`);

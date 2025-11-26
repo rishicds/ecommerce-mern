@@ -1,37 +1,68 @@
 import React, { useEffect, useState, useRef } from "react";
+import axios from 'axios';
 
 const Hero = () => {
-    // You can import your images and replace these placeholder paths
-    const images = {
-        mainBanner: "/Banana.png", // Large top banner (used as first slide)
-        product1: "/Double-Mango.jpg",     // Grid item 1
-        product2: "/Ice.jpg",     // Grid item 2
-        product3: "/Peach-Ice.jpg"      // Grid item 3
+    const [bannerSlides, setBannerSlides] = useState(null);
+    const [gridSlides, setGridSlides] = useState([]);
+    // default local images fallback
+    const defaultImages = {
+        mainBanner: "/Banana.png",
+        product1: "/Double-Mango.jpg",
+        product2: "/Ice.jpg",
+        product3: "/Peach-Ice.jpg"
     };
 
-    // Build banners array (each slide has image + text)
-    const banners = [
-        { src: images.mainBanner, title: 'Banana Ice', subtitle: '20mg E-LIQUID - Family', cta: 'SHOP NOW' },
-        { src: images.product1, title: 'BC10000', subtitle: 'Double Mango - Premium', cta: 'Explore' },
-        { src: images.product2, title: 'Sniper', subtitle: 'Peach Ice - Chill', cta: 'Explore' },
-        { src: images.product3, title: 'Peach Blast', subtitle: 'Refreshing Peach Flavor', cta: 'Explore' }
-    ];
+    useEffect(() => {
+        const load = async () => {
+            try {
+                const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/settings`);
+                if (res.data?.success && res.data.settings) {
+                    const s = res.data.settings;
+                    const hero = s.hero || {};
+                    // Use slides if available, otherwise fallback to old images
+                    const slides = Array.isArray(hero.slides) && hero.slides.length ? hero.slides : (hero.images || []).
+                        map((src, i) => ({ src, title: hero.title || '', subtitle: hero.subtitle || '', slot: i === 0 ? 'banner' : 'grid' }));
+
+                    // ensure at least 1 banner and up to 3 grid slides
+                    const bannerSlides = slides.filter(s => s.slot === 'banner');
+                    const gridSlides = slides.filter(s => s.slot === 'grid');
+
+                    const bannersArr = (bannerSlides.length ? bannerSlides : (slides.length ? [slides[0]] : [])).map(s => ({ src: s.src || '', title: s.title || '', subtitle: s.subtitle || '', cta: 'Explore' }));
+                    if (bannersArr.length === 0) bannersArr.push({ src: defaultImages.mainBanner, title: 'Banana Ice', subtitle: '20mg E-LIQUID - Family', cta: 'SHOP NOW' });
+                    setBannerSlides(bannersArr);
+                    setGridSlides(gridSlides.map(s => ({ src: s.src || '', title: s.title || '', subtitle: s.subtitle || '', cta: 'Explore' })));
+                    return;
+                }
+            } catch (err) {
+                // ignore and fallback
+            }
+            // fallback
+            setBanners([
+                { src: defaultImages.mainBanner, title: 'Banana Ice', subtitle: '20mg E-LIQUID - Family', cta: 'SHOP NOW' },
+                { src: defaultImages.product1, title: 'BC10000', subtitle: 'Double Mango - Premium', cta: 'Explore' },
+                { src: defaultImages.product2, title: 'Sniper', subtitle: 'Peach Ice - Chill', cta: 'Explore' },
+                { src: defaultImages.product3, title: 'Peach Blast', subtitle: 'Refreshing Peach Flavor', cta: 'Explore' }
+            ]);
+        };
+        load();
+    }, []);
 
     const [current, setCurrent] = useState(0);
     const [isPaused, setIsPaused] = useState(false);
     const timerRef = useRef(null);
 
-    const next = () => setCurrent((c) => (c + 1) % banners.length);
-    const prev = () => setCurrent((c) => (c - 1 + banners.length) % banners.length);
+    const next = () => setCurrent((c) => (c + 1) % (bannerSlides ? bannerSlides.length : 1));
+    const prev = () => setCurrent((c) => (c - 1 + (bannerSlides ? bannerSlides.length : 1)) % (bannerSlides ? bannerSlides.length : 1));
 
     useEffect(() => {
-        // clean any existing
         if (timerRef.current) clearInterval(timerRef.current);
         timerRef.current = setInterval(() => {
-            if (!isPaused) next();
+            if (!isPaused && bannerSlides && bannerSlides.length) next();
         }, 4000);
         return () => clearInterval(timerRef.current);
-    }, [isPaused]);
+    }, [isPaused, bannerSlides]);
+
+    if (!bannerSlides) return null;
 
     return (
         <div className="w-full max-w-7xl mx-auto px-4 py-6">
@@ -43,24 +74,24 @@ const Hero = () => {
             >
                 <img
                     className="w-full h-full object-contain transition-transform duration-700"
-                    src={banners[current].src}
-                    alt={banners[current].title || `Banner ${current + 1}`}
+                    src={bannerSlides[current].src}
+                    alt={bannerSlides[current].title || `Banner ${current + 1}`}
                 />
 
                 {/* Overlay content (left side) */}
-                <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent flex items-center">
+                <div className="absolute inset-0 bg-linear-to-r from-black/40 to-transparent flex items-center">
                     <div className="text-white px-8 md:px-16">
                         <div className="flex items-center gap-2 mb-4">
-                            <div className="w-12 h-[2px] bg-white"></div>
+                            <div className="w-12 h-0.5 bg-white"></div>
                             <p className="font-medium text-sm md:text-base tracking-wider">FEATURED COLLECTION</p>
                         </div>
                         <h1 className="text-4xl md:text-6xl font-bold mb-4 leading-tight">
-                            {banners[current].title}
+                            {bannerSlides[current].title}
                             <br />
-                            <span className="text-xl font-medium">{banners[current].subtitle}</span>
+                            <span className="text-xl font-medium">{bannerSlides[current].subtitle}</span>
                         </h1>
                         <button className="flex items-center gap-2 bg-white text-black px-6 py-3 rounded-md font-semibold hover:bg-gray-100 transition-colors">
-                            {banners[current].cta}
+                            {bannerSlides[current].cta}
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                             </svg>
@@ -91,7 +122,7 @@ const Hero = () => {
 
                 {/* Small indicators */}
                 <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-20">
-                    {banners.map((_, i) => (
+                    {bannerSlides.map((_, i) => (
                         <button
                             key={i}
                             onClick={() => setCurrent(i)}
@@ -104,68 +135,23 @@ const Hero = () => {
 
             {/* Grid Section */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Grid Item 1 */}
-                <div className="relative h-[300px] rounded-lg overflow-hidden group cursor-pointer">
-                    <img 
-                        className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105" 
-                        src={images.product1}
-                        alt="Product 1" 
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
-                        <div className="text-white p-6 w-full">
-                            <h3 className="text-2xl font-bold mb-2">BC10000-Double-Mango</h3>
-                            <p className="text-sm mb-3 opacity-90"></p>
-                            <div className="flex items-center gap-2 text-sm font-semibold">
-                                <span>Explore</span>
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                </svg>
+                {gridSlides.slice(0,3).map((b, idx) => (
+                    <div key={idx} className="relative h-[300px] rounded-lg overflow-hidden group cursor-pointer">
+                        <img className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105" src={b.src} alt={b.title || `Grid ${idx+1}`} />
+                        <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent flex items-end">
+                            <div className="text-white p-6 w-full">
+                                <h3 className="text-2xl font-bold mb-2">{b.title}</h3>
+                                <p className="text-sm mb-3 opacity-90">{b.subtitle}</p>
+                                <div className="flex items-center gap-2 text-sm font-semibold">
+                                    <span>Explore</span>
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-
-                {/* Grid Item 2 */}
-                <div className="relative h-[300px] rounded-lg overflow-hidden group cursor-pointer">
-                    <img 
-                        className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105" 
-                        src={images.product2}
-                        alt="Product 2" 
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
-                        <div className="text-white p-6 w-full">
-                            <h3 className="text-2xl font-bold mb-2">Sniper Peach Ice</h3>
-                            <p className="text-sm mb-3 opacity-90"></p>
-                            <div className="flex items-center gap-2 text-sm font-semibold">
-                                <span>Explore</span>
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Grid Item 3 */}
-                <div className="relative h-[300px] rounded-lg overflow-hidden group cursor-pointer">
-                    <img 
-                        className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105" 
-                        src={images.product3}
-                        alt="Product 3" 
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
-                        <div className="text-white p-6 w-full">
-                            <h3 className="text-2xl font-bold mb-2">BC10000-Double-Mango</h3>
-                            <p className="text-sm mb-3 opacity-90"></p>
-                            <div className="flex items-center gap-2 text-sm font-semibold">
-                                <span>Explore</span>
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                ))}
             </div>
         </div>
     );

@@ -6,6 +6,7 @@ import Add from "./pages/Add";
 import List from "./pages/List";
 import Orders from "./pages/Orders";
 import Categories from "./pages/Categories";
+import Settings from "./pages/Settings";
 import { ToastContainer } from 'react-toastify';
 import Login from "./components/Login";
 
@@ -34,6 +35,7 @@ const App = () => {
                       <Route path="/list" element={<List />} />
                       <Route path="/orders" element={<Orders />} />
                       <Route path="/categories" element={<Categories />} />
+                      <Route path="/settings" element={<Settings />} />
                     </Routes>
                   </div>
                 </main>

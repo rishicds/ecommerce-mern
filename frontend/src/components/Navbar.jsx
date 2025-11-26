@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import axios from 'axios';
 import { assets } from '../assets/frontend_assets/assets';
 import { Link, NavLink } from 'react-router';
 import { useShop } from '../context/ShopContex';
@@ -9,6 +10,7 @@ const Navbar = () => {
     const [mobileSearchVisible, setMobileSearchVisible] = useState(false);
     const { setShowSearch, getCartCount } = useShop();
     const { logout, user, navigate } = useAuth();
+    const [settingsNav, setSettingsNav] = useState(null);
     const [query, setQuery] = useState('');
     const searchTimer = useRef(null);
 
@@ -33,6 +35,20 @@ const Navbar = () => {
 
     useEffect(() => {
         return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
+    }, []);
+
+    useEffect(() => {
+        const load = async () => {
+            try {
+                const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/settings`);
+                if (res.data?.success && Array.isArray(res.data.settings?.navbar)) {
+                    setSettingsNav(res.data.settings.navbar);
+                }
+            } catch (err) {
+                // keep fallback links
+            }
+        };
+        load();
     }, []);
     
     const cartCount = getCartCount();
@@ -184,46 +200,63 @@ const Navbar = () => {
             <div className='bg-white'>
                 <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
                     <nav className='hidden sm:flex items-center justify-center gap-8 text-sm font-medium py-2'>
-                        <NavLink to="/" className="flex flex-col items-center gap-1 group">
-                            {({ isActive }) => (
-                                <>
-                                    <p className={`transition-colors ${isActive ? 'text-[#FFB81C]' : 'text-gray-700 hover:text-[#FFB81C]'}`}>
-                                        HOME
-                                    </p>
-                                    <div className={`h-0.5 transition-all duration-300 ${isActive ? 'w-full bg-[#FFB81C]' : 'w-0 bg-[#FFB81C] group-hover:w-full'}`} />
-                                </>
-                            )}
-                        </NavLink>
-                        <NavLink to="/collection" className="flex flex-col items-center gap-1 group">
-                            {({ isActive }) => (
-                                <>
-                                    <p className={`transition-colors ${isActive ? 'text-[#FFB81C]' : 'text-gray-700 hover:text-[#FFB81C]'}`}>
-                                        COLLECTION
-                                    </p>
-                                    <div className={`h-0.5 transition-all duration-300 ${isActive ? 'w-full bg-[#FFB81C]' : 'w-0 bg-[#FFB81C] group-hover:w-full'}`} />
-                                </>
-                            )}
-                        </NavLink>
-                        <NavLink to="/about" className="flex flex-col items-center gap-1 group">
-                            {({ isActive }) => (
-                                <>
-                                    <p className={`transition-colors ${isActive ? 'text-[#FFB81C]' : 'text-gray-700 hover:text-[#FFB81C]'}`}>
-                                        ABOUT
-                                    </p>
-                                    <div className={`h-0.5 transition-all duration-300 ${isActive ? 'w-full bg-[#FFB81C]' : 'w-0 bg-[#FFB81C] group-hover:w-full'}`} />
-                                </>
-                            )}
-                        </NavLink>
-                        <NavLink to="/contact" className="flex flex-col items-center gap-1 group">
-                            {({ isActive }) => (
-                                <>
-                                    <p className={`transition-colors ${isActive ? 'text-[#FFB81C]' : 'text-gray-700 hover:text-[#FFB81C]'}`}>
-                                        CONTACT
-                                    </p>
-                                    <div className={`h-0.5 transition-all duration-300 ${isActive ? 'w-full bg-[#FFB81C]' : 'w-0 bg-[#FFB81C] group-hover:w-full'}`} />
-                                </>
-                            )}
-                        </NavLink>
+                        {settingsNav && settingsNav.length > 0 ? (
+                            settingsNav.map((link, idx) => (
+                                <NavLink key={idx} to={link.href || '/'} className="flex flex-col items-center gap-1 group">
+                                    {({ isActive }) => (
+                                        <>
+                                            <p className={`transition-colors ${isActive ? 'text-[#FFB81C]' : 'text-gray-700 hover:text-[#FFB81C]'}`}>
+                                                {link.label}
+                                            </p>
+                                            <div className={`h-0.5 transition-all duration-300 ${isActive ? 'w-full bg-[#FFB81C]' : 'w-0 bg-[#FFB81C] group-hover:w-full'}`} />
+                                        </>
+                                    )}
+                                </NavLink>
+                            ))
+                        ) : (
+                            <>
+                                <NavLink to="/" className="flex flex-col items-center gap-1 group">
+                                    {({ isActive }) => (
+                                        <>
+                                            <p className={`transition-colors ${isActive ? 'text-[#FFB81C]' : 'text-gray-700 hover:text-[#FFB81C]'}`}>
+                                                HOME
+                                            </p>
+                                            <div className={`h-0.5 transition-all duration-300 ${isActive ? 'w-full bg-[#FFB81C]' : 'w-0 bg-[#FFB81C] group-hover:w-full'}`} />
+                                        </>
+                                    )}
+                                </NavLink>
+                                <NavLink to="/collection" className="flex flex-col items-center gap-1 group">
+                                    {({ isActive }) => (
+                                        <>
+                                            <p className={`transition-colors ${isActive ? 'text-[#FFB81C]' : 'text-gray-700 hover:text-[#FFB81C]'}`}>
+                                                COLLECTION
+                                            </p>
+                                            <div className={`h-0.5 transition-all duration-300 ${isActive ? 'w-full bg-[#FFB81C]' : 'w-0 bg-[#FFB81C] group-hover:w-full'}`} />
+                                        </>
+                                    )}
+                                </NavLink>
+                                <NavLink to="/about" className="flex flex-col items-center gap-1 group">
+                                    {({ isActive }) => (
+                                        <>
+                                            <p className={`transition-colors ${isActive ? 'text-[#FFB81C]' : 'text-gray-700 hover:text-[#FFB81C]'}`}>
+                                                ABOUT
+                                            </p>
+                                            <div className={`h-0.5 transition-all duration-300 ${isActive ? 'w-full bg-[#FFB81C]' : 'w-0 bg-[#FFB81C] group-hover:w-full'}`} />
+                                        </>
+                                    )}
+                                </NavLink>
+                                <NavLink to="/contact" className="flex flex-col items-center gap-1 group">
+                                    {({ isActive }) => (
+                                        <>
+                                            <p className={`transition-colors ${isActive ? 'text-[#FFB81C]' : 'text-gray-700 hover:text-[#FFB81C]'}`}>
+                                                CONTACT
+                                            </p>
+                                            <div className={`h-0.5 transition-all duration-300 ${isActive ? 'w-full bg-[#FFB81C]' : 'w-0 bg-[#FFB81C] group-hover:w-full'}`} />
+                                        </>
+                                    )}
+                                </NavLink>
+                            </>
+                        )}
                     </nav>
                 </div>
             </div>
@@ -243,50 +276,69 @@ const Navbar = () => {
                     </div>
                     
                     <nav className="flex-1 py-4">
-                        <NavLink
-                            onClick={() => setVisible(false)}
-                            className={({ isActive }) => 
-                                `block px-6 py-3 text-sm font-medium transition-colors ${
-                                    isActive ? 'text-[#FFB81C] bg-[#FFB81C]/10' : 'text-gray-700 hover:bg-gray-50'
-                                }`
-                            }
-                            to="/"
-                        >
-                            HOME
-                        </NavLink>
-                        <NavLink
-                            onClick={() => setVisible(false)}
-                            className={({ isActive }) => 
-                                `block px-6 py-3 text-sm font-medium transition-colors ${
-                                    isActive ? 'text-[#FFB81C] bg-[#FFB81C]/10' : 'text-gray-700 hover:bg-gray-50'
-                                }`
-                            }
-                            to="/collection"
-                        >
-                            COLLECTION
-                        </NavLink>
-                        <NavLink
-                            onClick={() => setVisible(false)}
-                            className={({ isActive }) => 
-                                `block px-6 py-3 text-sm font-medium transition-colors ${
-                                    isActive ? 'text-[#FFB81C] bg-[#FFB81C]/10' : 'text-gray-700 hover:bg-gray-50'
-                                }`
-                            }
-                            to="/about"
-                        >
-                            ABOUT
-                        </NavLink>
-                        <NavLink
-                            onClick={() => setVisible(false)}
-                            className={({ isActive }) => 
-                                `block px-6 py-3 text-sm font-medium transition-colors ${
-                                    isActive ? 'text-[#FFB81C] bg-[#FFB81C]/10' : 'text-gray-700 hover:bg-gray-50'
-                                }`
-                            }
-                            to="/contact"
-                        >
-                            CONTACT
-                        </NavLink>
+                        {settingsNav && settingsNav.length > 0 ? (
+                            settingsNav.map((link, idx) => (
+                                <NavLink
+                                    key={idx}
+                                    onClick={() => setVisible(false)}
+                                    className={({ isActive }) => 
+                                        `block px-6 py-3 text-sm font-medium transition-colors ${
+                                            isActive ? 'text-[#FFB81C] bg-[#FFB81C]/10' : 'text-gray-700 hover:bg-gray-50'
+                                        }`
+                                    }
+                                    to={link.href || '/'}
+                                >
+                                    {link.label}
+                                </NavLink>
+                            ))
+                        ) : (
+                            <>
+                                <NavLink
+                                    onClick={() => setVisible(false)}
+                                    className={({ isActive }) => 
+                                        `block px-6 py-3 text-sm font-medium transition-colors ${
+                                            isActive ? 'text-[#FFB81C] bg-[#FFB81C]/10' : 'text-gray-700 hover:bg-gray-50'
+                                        }`
+                                    }
+                                    to="/"
+                                >
+                                    HOME
+                                </NavLink>
+                                <NavLink
+                                    onClick={() => setVisible(false)}
+                                    className={({ isActive }) => 
+                                        `block px-6 py-3 text-sm font-medium transition-colors ${
+                                            isActive ? 'text-[#FFB81C] bg-[#FFB81C]/10' : 'text-gray-700 hover:bg-gray-50'
+                                        }`
+                                    }
+                                    to="/collection"
+                                >
+                                    COLLECTION
+                                </NavLink>
+                                <NavLink
+                                    onClick={() => setVisible(false)}
+                                    className={({ isActive }) => 
+                                        `block px-6 py-3 text-sm font-medium transition-colors ${
+                                            isActive ? 'text-[#FFB81C] bg-[#FFB81C]/10' : 'text-gray-700 hover:bg-gray-50'
+                                        }`
+                                    }
+                                    to="/about"
+                                >
+                                    ABOUT
+                                </NavLink>
+                                <NavLink
+                                    onClick={() => setVisible(false)}
+                                    className={({ isActive }) => 
+                                        `block px-6 py-3 text-sm font-medium transition-colors ${
+                                            isActive ? 'text-[#FFB81C] bg-[#FFB81C]/10' : 'text-gray-700 hover:bg-gray-50'
+                                        }`
+                                    }
+                                    to="/contact"
+                                >
+                                    CONTACT
+                                </NavLink>
+                            </>
+                        )}
                     </nav>
                 </div>
             </div>

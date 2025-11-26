@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { useShop } from '../context/ShopContex';
 import Title from '../components/Title';
 import { assets } from '../assets/frontend_assets/assets';
@@ -7,6 +7,15 @@ import { toast } from 'react-toastify';
 
 function Cart() {
     const { products, currency, cartItems, cartDetails, updateQuantity, navigate, getCartAmount } = useShop();
+
+    useEffect(() => {
+        // Ensure the cart page starts at the top when navigated to
+        try {
+            window.scrollTo({ top: 0, behavior: 'auto' });
+        } catch (e) {
+            window.scrollTo(0, 0);
+        }
+    }, []);
 
     // Prefer using cartDetails returned from backend when available
     const cartData = useMemo(() => {

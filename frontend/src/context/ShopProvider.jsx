@@ -167,12 +167,14 @@ const ShopProvider = ({ children }) => {
                     { itemId, variantSize },
                     { withCredentials: true }
                 );
+                // refresh server-backed cart details so UI updates immediately
+                await userCartData();
             } catch (error) {
                 console.error(error);
                 toast.error(error?.response?.data?.message || error.message);
             }
         }
-    }, [user, products]);
+    }, [user, products, userCartData]);
 
 
 

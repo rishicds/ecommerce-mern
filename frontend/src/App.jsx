@@ -25,6 +25,7 @@ import FAQ from "./components/faq";
 import ProductHighlights from "./components/highlights";
 import Hero from "./components/Hero";
 import Highlights from "./components/highlights";
+import Chatbot from "./components/Chatbot";
 
 const App = () => {
   const location = useLocation();
@@ -62,6 +63,7 @@ const App = () => {
         </>
       )}
 
+      <Chatbot />
       <Footer />
     </div>
   )

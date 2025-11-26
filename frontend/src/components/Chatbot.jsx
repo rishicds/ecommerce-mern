@@ -226,7 +226,7 @@ const Chatbot = () => {
             )}
 
             {open && (
-                <div className="fixed inset-0 md:right-6 md:bottom-6 md:left-auto md:w-[34rem] bg-white border border-gray-200 md:rounded-lg shadow-lg overflow-hidden z-50 md:max-h-[90vh]">
+                <div className="fixed inset-0 md:inset-auto md:right-6 md:bottom-6 md:left-auto md:w-[34rem] bg-white border border-gray-200 md:rounded-lg shadow-lg overflow-hidden z-50 md:max-h-[90vh] flex flex-col">
                             <div className="p-3 bg-black text-white flex items-center gap-3">
                                 <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-sm font-bold">K</div>
                                 <div className="flex-1">
@@ -236,7 +236,7 @@ const Chatbot = () => {
                                 <button onClick={() => setOpen(false)} className="text-sm opacity-80 px-2 py-1 bg-white/10 rounded">Close</button>
                             </div>
 
-                            <div ref={messagesRef} className="p-3 h-[55vh] md:h-80 overflow-auto bg-gray-50">
+                            <div ref={messagesRef} className="p-3 flex-1 md:h-80 overflow-auto bg-gray-50">
                                 <div className="flex flex-col gap-3">
                                 {messages.map((m, i) => (
                                     m.from === 'bot' ? (

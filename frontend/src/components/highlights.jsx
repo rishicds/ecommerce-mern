@@ -80,24 +80,21 @@ const Highlights = () => {
                 </div>
 
                 {/* Collection Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
                     {[
                         { img: IMAGES.collection1, title: "Lorem Ipsum", subtitle: "Dolor Sit Amet" },
                         { img: IMAGES.collection2, title: "Consectetur", subtitle: "Adipiscing Elit" },
                         { img: IMAGES.collection3, title: "Sed Dolor", subtitle: "Amet Consectetur" }
                     ].map((item, idx) => (
-                        <div key={idx} className="relative overflow-hidden bg-white border border-gray-200 h-72 rounded-lg group cursor-pointer">
-                            <img
-                                src={item.img}
-                                alt={item.title}
-                                className="absolute inset-0 w-full h-full object-contain transition-all duration-700 group-hover:scale-110"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300" />
-                            <div className="absolute bottom-0 left-0 right-0 p-6 translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-                                <h4 className="text-black font-bold text-lg mb-1">{item.title}</h4>
-                                <p className="text-black/80 text-xs mb-3">{item.subtitle}</p>
-                                <div className="flex items-center gap-2 text-[#FFB81C] text-sm font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                    Shop Now <ArrowRight className="w-4 h-4" />
+                        <div key={idx} className="flex flex-col bg-white rounded-lg overflow-hidden group cursor-pointer shadow-sm hover:shadow-md transform transition-transform duration-300 hover:-translate-y-1">
+                            <div className="w-full h-56 md:h-64 flex items-center justify-center bg-white">
+                                <img src={item.img} alt={item.title} className="max-h-full object-contain transition-transform duration-700 group-hover:scale-105" />
+                            </div>
+                            <div className="px-4 py-3">
+                                <h4 className="text-sm md:text-base font-semibold text-black">{item.title}</h4>
+                                <p className="text-gray-600 text-xs mt-1">{item.subtitle}</p>
+                                <div className="mt-3">
+                                    <button className="text-[#FFB81C] font-semibold text-sm inline-flex items-center gap-2">Shop Now <ArrowRight className="w-4 h-4" /></button>
                                 </div>
                             </div>
                         </div>

@@ -4,7 +4,9 @@ const AgeGate = ({ storageKey = "ageVerified", defaultMinAge = 19 }) => {
   const [day, setDay] = useState(1);
   const [month, setMonth] = useState(1);
   const currentYear = new Date().getFullYear();
-  const [year, setYear] = useState(currentYear - defaultMinAge);
+  // Default birth year set to Jan 1, 2025 per request
+  const defaultYear = 2025;
+  const [year, setYear] = useState(defaultYear);
   const minAge = defaultMinAge; // fixed minimum age (19 by default)
   const [visible, setVisible] = useState(false);
 

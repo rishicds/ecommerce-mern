@@ -98,7 +98,7 @@ const Orders = () => {
                         className="bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow p-4 md:p-6 rounded-lg grid grid-cols-1 sm:grid-cols-[48px_1fr_180px] lg:grid-cols-[48px_1fr_220px_120px] gap-4 items-start text-base text-gray-800"
                     >
                         <div className="flex items-start">
-                            <img className="w-12 h-12" src={assets.parcel_icon} alt="Parcel Icon" />
+                            <img className="w-16 h-16 sm:w-20 sm:h-20" src={assets.parcel_icon} alt="Parcel Icon" />
                         </div>
 
                         <div className="min-w-0">
@@ -110,52 +110,89 @@ const Orders = () => {
                                         </div>
 
                                         <div className="min-w-0">
-                                            <p className="text-base font-semibold truncate">{order.userId?.name || 'Guest'}</p>
-                                            <p className="text-sm text-gray-500 truncate">Order #{String(order._id).slice(-6)} • {new Date(order.createdAt).toLocaleDateString()}</p>
+                                            <p className="text-lg font-bold truncate">{order.userId?.name || 'Guest'}</p>
+                                            <p className="text-base text-gray-600 truncate">Order #<span className="font-semibold">{order._id}</span></p>
 
                                             <div className="mt-2 text-sm text-gray-700">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-gray-400">Phone:</span>
-                                                    <a className="text-blue-600 hover:underline" href={`tel:${order.phone}`}>{order.phone || '—'}</a>
-                                                </div>
+                                                        <span className="text-base md:text-lg text-gray-800 font-semibold">Phone:</span>
+                                                        <a className="text-blue-700 font-bold md:text-lg hover:underline" href={`tel:${order.phone}`}>{order.phone || '—'}</a>
+                                                    </div>
 
-                                                <div className="mt-2">
-                                                    <span className="text-gray-400">Address:</span>
-                                                    <address className="not-italic mt-1 text-gray-700">
-                                                        <div>{order.address?.street || '-'}</div>
-                                                        <div>{[order.address?.city, order.address?.state].filter(Boolean).join(', ')} {order.address?.zip || ''}</div>
-                                                        <div>{order.address?.country || ''}</div>
-                                                    </address>
-                                                </div>
+                                                    <div className="mt-3">
+                                                        <span className="text-base md:text-lg text-gray-800 font-semibold">Address:</span>
+                                                        <address className="not-italic mt-1 text-gray-700 text-sm md:text-base">
+                                                            <div className="text-gray-700">{order.address?.street || '-'}</div>
+                                                            <div className="text-gray-700">{[order.address?.city, order.address?.state].filter(Boolean).join(', ')} {order.address?.zip || ''}</div>
+                                                            <div className="text-gray-700">{order.address?.country || ''}</div>
+                                                        </address>
+                                                    </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                                 <div className="hidden md:flex items-center gap-2">
                                     <p className={`px-2 py-0.5 rounded-full text-sm ${order.payment ? 'bg-green-50 text-green-700' : 'bg-yellow-50 text-yellow-700'}`}>{order.payment ? 'Paid' : 'Pending'}</p>
-                                    <p className="text-sm text-gray-500">{order.phone}</p>
                                 </div>
                             </div>
 
                             <div className="mt-3 space-y-2">
                                 {order.items.map((item, index) => (
                                     <div className="flex items-center justify-between gap-4 py-2 border-b last:border-b-0" key={item._id || index}>
-                                        <div className="min-w-0">
-                                            <p className="text-base truncate">{item.name} <span className="text-sm text-gray-500">x {item.quantity}</span></p>
-                                            <p className="text-sm text-gray-500">{item.variantSize || item.size || ''}</p>
+                                        <div className="min-w-0 flex items-center gap-3">
+                                            <img
+                                                src={item.image || item.productId?.images?.[0]?.url || assets.parcel_icon}
+                                                alt={item.name}
+                                                className="w-20 h-20 sm:w-24 sm:h-24 object-cover border rounded"
+                                            />
+                                            <div className="min-w-0">
+                                                <p className="text-base truncate">{item.name} <span className="text-sm text-gray-500">x {item.quantity}</span></p>
+                                                <p className="text-sm text-gray-500">{item.variantSize || item.size || ''}</p>
+                                            </div>
                                         </div>
 
                                         <div className="flex items-center gap-3">
-                                            <select
-                                                value={item.status || "Pending"}
-                                                onChange={(e) => itemStatusHandler(e.target.value, order._id, item._id)}
-                                                className="p-2 border border-gray-200 rounded-md bg-white text-sm"
-                                            >
-                                                {["Pending", "Processing", "Shipped", "Delivered", "Cancelled"].map(opt => (
-                                                    <option key={opt} value={opt}>{opt}</option>
-                                                ))}
-                                            </select>
-                                            <p className={`text-sm px-2 py-0.5 rounded-full ${item.status === 'Delivered' ? 'bg-green-50 text-green-700' : item.status === 'Cancelled' ? 'bg-red-50 text-red-700' : 'bg-yellow-50 text-yellow-700'}`}>{item.status || 'Pending'}</p>
+                                            {/* Styled select with custom arrow */}
+                                            <div className="relative">
+                                                <select
+                                                    value={item.status || "Pending"}
+                                                    onChange={(e) => itemStatusHandler(e.target.value, order._id, item._id)}
+                                                    className="block w-48 appearance-none p-2 pl-3 pr-8 border border-gray-200 rounded-md bg-white text-sm hover:shadow-sm transition-shadow duration-150 focus:outline-none focus:ring-2 focus:ring-yellow-200"
+                                                >
+                                                    {["Pending", "Processing", "Shipped", "Delivered", "Cancelled"].map(opt => (
+                                                        <option key={opt} value={opt}>{opt}</option>
+                                                    ))}
+                                                </select>
+                                                <svg className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                                                </svg>
+                                            </div>
+
+                                            {/* Status badge with stronger contrast and icon */}
+                                            {(() => {
+                                                const s = (item.status || 'Pending');
+                                                const base = 'inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-semibold';
+                                                let color = 'bg-yellow-50 text-yellow-800';
+                                                let icon = (
+                                                    <svg className="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01"/></svg>
+                                                );
+                                                if (s === 'Delivered') {
+                                                    color = 'bg-green-50 text-green-800';
+                                                    icon = (<svg className="w-4 h-4 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"/></svg>);
+                                                } else if (s === 'Shipped') {
+                                                    color = 'bg-blue-50 text-blue-800';
+                                                    icon = (<svg className="w-4 h-4 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 6h10l4 4v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"/></svg>);
+                                                } else if (s === 'Processing') {
+                                                    color = 'bg-indigo-50 text-indigo-800';
+                                                    icon = (<svg className="w-4 h-4 text-indigo-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3"/></svg>);
+                                                } else if (s === 'Cancelled') {
+                                                    color = 'bg-red-50 text-red-800';
+                                                    icon = (<svg className="w-4 h-4 text-red-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>);
+                                                }
+                                                return (
+                                                    <span className={`${base} ${color} ring-0`}>{icon}<span className="capitalize">{s}</span></span>
+                                                );
+                                            })()}
                                         </div>
                                     </div>
                                 ))}
@@ -163,15 +200,15 @@ const Orders = () => {
                         </div>
 
                         <div className="hidden lg:block">
-                            <p className="text-base">Items: <span className="font-medium">{order.items.length}</span></p>
-                            <p className="mt-2 text-base">Method: <span className="font-medium">{order.paymentMethod}</span></p>
-                            <p className="mt-2 text-base">Date: <span className="text-gray-500">{new Date(order.createdAt).toLocaleString()}</span></p>
+                            <p className="text-sm text-gray-600">Items: <span className="font-semibold text-lg">{order.items.length}</span></p>
+                            <p className="mt-2 text-sm text-gray-600">Method: <span className="font-semibold text-base">{order.paymentMethod}</span></p>
+                            <p className="mt-2 text-sm text-gray-600">Date: <span className="text-gray-500">{new Date(order.createdAt).toLocaleString()}</span></p>
                         </div>
 
                         <div className="flex flex-col items-end justify-between">
                             <div className="text-right">
-                                <p className="text-base text-gray-500">Total</p>
-                                <p className="text-2xl font-bold">{currency} {order.amount}</p>
+                                <p className="text-sm text-gray-600">Total</p>
+                                <p className="text-3xl font-extrabold">{currency} {order.amount}</p>
                             </div>
                         </div>
 

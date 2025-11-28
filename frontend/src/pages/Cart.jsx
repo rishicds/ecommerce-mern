@@ -66,7 +66,9 @@ function Cart() {
                                         <p className='text-xs sm:text-lg font-medium'>{displayName}</p>
                                         <div className='flex items-center gap-5 mt-2'>
                                             <p>{`${currency} ${displayPrice}`}</p>
-                                            <p className='px-2 sm:px-3 sm:py-1 border border-gray-300 bg-slate-50'>{item.size}</p>
+                                            {item.size && item.size !== 'default' && (
+                                                <p className='px-2 sm:px-3 sm:py-1 border border-gray-300 bg-slate-50'>{item.size}</p>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

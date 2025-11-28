@@ -164,7 +164,7 @@ const Navbar = () => {
                     </div>
 
                     {/* Icons - Search, Profile, Cart, Hamburger */}
-                    <div className='flex items-center gap-6 justify-center'>
+                    <div className='flex items-center gap-3 sm:gap-6 justify-center'>
                         {/* Mobile search toggle (visible on small screens) */}
                         <button
                             onClick={() => setMobileSearchVisible(v => !v)}
@@ -176,7 +176,7 @@ const Navbar = () => {
 
                         <div className='group relative flex items-center'>
                             {/* Notifications bell */}
-                            <div className='relative inline-block mr-2'>
+                            <div className='relative inline-block'>
                                 <button
                                     onClick={async () => {
                                         const next = !notifVisible;
@@ -194,13 +194,13 @@ const Navbar = () => {
                                             }
                                         }
                                     }}
-                                    className='w-9 h-9 flex items-center justify-center hover:opacity-70 transition-opacity'
+                                    className='w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center hover:opacity-70 transition-opacity'
                                     aria-label='Notifications'
                                 >
-                                    <GoBell className='text-3xl leading-none' aria-hidden='true' />
+                                    <GoBell className='text-2xl sm:text-3xl leading-none' aria-hidden='true' />
                                 </button>
                                 {unreadCount > 0 && (
-                                    <span className='absolute -right-1 -top-1 bg-[#FFB81C] text-white rounded-full w-5 h-5 flex items-center justify-center text-xs'>
+                                    <span className='absolute -right-1 -top-1 sm:-right-1 sm:-top-1 bg-[#FFB81C] text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] sm:text-xs'>
                                         {unreadCount}
                                     </span>
                                 )}
@@ -318,10 +318,10 @@ const Navbar = () => {
                                         if (!user) return navigate('/login');
                                         setProfileOpen(v => !v);
                                     }}
-                                    className='w-9 h-9 flex items-center justify-center hover:opacity-70 transition-opacity'
+                                    className='w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center hover:opacity-70 transition-opacity'
                                     aria-label="Profile"
                                 >
-                                    <img className='w-6' src={assets.profile_icon} alt="profile icon" />
+                                    <img className='w-5 sm:w-6' src={assets.profile_icon} alt="profile icon" />
                                 </button>
 
                                 {/* Dropdown - click toggled */}
@@ -352,11 +352,11 @@ const Navbar = () => {
                         <Link
                             to="/cart"
                             aria-label={`Cart with ${cartCount} items`}
-                            className={`relative transition-transform duration-200 flex items-center justify-center w-9 h-9 ${cartCount > 0 ? 'hover:scale-105 ring-2 ring-offset-1 ring-[#FFB81C] rounded-full' : 'hover:opacity-80'}`}
+                            className={`relative transition-transform duration-200 flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 ${cartCount > 0 ? 'hover:scale-105 ring-2 ring-offset-1 ring-[#FFB81C] rounded-full' : 'hover:opacity-80'}`}
                         >
-                            <img className='w-7' src={assets.cart_icon} alt="cart icon" />
+                            <img className='w-6 sm:w-7' src={assets.cart_icon} alt="cart icon" />
                             {cartCount > 0 && (
-                                <span className='absolute -right-2 -bottom-2 w-6 h-6 flex items-center justify-center bg-[#FFB81C] text-white rounded-full text-[10px] sm:text-xs font-semibold shadow-md animate-pulse'>
+                                <span className='absolute -right-1 -bottom-1 sm:-right-2 sm:-bottom-2 w-5 h-5 flex items-center justify-center bg-[#FFB81C] text-white rounded-full text-[10px] sm:text-xs font-semibold shadow-md animate-pulse'>
                                     {cartCount}
                                 </span>
                             )}

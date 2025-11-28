@@ -155,7 +155,7 @@ function PlaceOrder() {
                                     return Object.keys(sizes).map(size => ({ productId: pid, variantSize: size, quantity: sizes[size] }));
                                 })).map((it, idx) => {
                                     const pid = it.productId || it.productId;
-                                    const size = it.variantSize || it.size;
+                                    const size = (it.variantSize && it.variantSize !== 'default') ? it.variantSize : (it.size && it.size !== 'default' ? it.size : '');
                                     const quantity = it.quantity || 0;
                                     const product = products.find(p => p._id === pid) || {};
                                     const image = it.image || product.images?.[0]?.url || '';

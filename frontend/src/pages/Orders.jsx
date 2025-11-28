@@ -3,6 +3,8 @@ import { useShop } from '../context/ShopContex';
 import { useAuth } from '../context/AuthContext';
 import Title from '../components/Title';
 import axios from 'axios';
+import { toast } from 'react-toastify';
+import { initSocket } from '../socket';
 
 function Orders() {
     const { backendUrl, currency } = useShop();
@@ -40,6 +42,59 @@ function Orders() {
             loadOrderData();
         }
     }, [user, loadOrderData]);
+
+    // Listen for order updates via socket and update UI in real time
+    useEffect(() => {
+        if (!user) return;
+        const url = backendUrl || '';
+        const socket = initSocket(url, user?._id);
+        if (!socket) return;
+
+        const onOrderUpdated = (payload) => {
+            try {
+                const updated = payload?.order;
+                if (!updated) return;
+                // If entire order was cancelled, remove its items from the user orders list
+                if ((updated.status || '').toLowerCase() === 'cancelled') {
+                    setOrderData(prev => prev.filter(i => i.orderId !== updated._id));
+                } else {
+                    // Otherwise, update statuses of items from this order
+                    setOrderData(prev => prev.map(item => item.orderId === updated._id ? { ...item, status: item.status || updated.status } : item));
+                }
+            } catch (e) {
+                console.error('Error handling orderUpdated on user orders page', e);
+            }
+        };
+
+        socket.on('orderUpdated', onOrderUpdated);
+
+        return () => {
+            try { socket.off('orderUpdated', onOrderUpdated); } catch (e) {}
+        };
+    }, [user]);
+
+    // Cancel entire order (user action)
+    const cancelOrder = async (orderId) => {
+        if (!orderId) return;
+        try {
+            const res = await axios.put(
+                `${backendUrl}/api/order/status`,
+                { orderId, status: 'Cancelled' },
+                { withCredentials: true }
+            );
+
+            if (res.data.success) {
+                // Mark all items for this order as cancelled in local UI
+                setOrderData(prev => prev.map(item => item.orderId === orderId ? { ...item, status: 'Cancelled' } : item));
+                toast.success('Order cancelled successfully.');
+            } else {
+                toast.error(res.data.message || 'Failed to cancel order.');
+            }
+        } catch (error) {
+            console.error('Error cancelling order:', error);
+            toast.error('Something went wrong while cancelling the order.');
+        }
+    };
 
     return (
         <div className='border-t-2 border-gray-300 pt-16'>
@@ -82,9 +137,26 @@ function Orders() {
                                 })()}
                                 <p className='text-base md:text-lg font-medium'>{product.status}</p>
                             </div>
-                            <button className='border border-gray-300 px-4 py-2 text-base font-medium rounded-sm cursor-pointer'>
-                                Track Order
-                            </button>
+                            <div className='flex items-center gap-2'>
+                                <button className='border border-gray-300 px-4 py-2 text-base font-medium rounded-sm cursor-pointer'>
+                                    Track Order
+                                </button>
+                                {/* Show cancel button only when order is not cancelled or delivered */}
+                                {(() => {
+                                    const s = (product.status || '').toLowerCase();
+                                    if (s !== 'cancelled' && s !== 'delivered') {
+                                        return (
+                                            <button
+                                                onClick={() => cancelOrder(product.orderId)}
+                                                className='border border-red-300 px-4 py-2 text-base font-medium rounded-sm text-red-700 hover:bg-red-50'
+                                            >
+                                                Cancel
+                                            </button>
+                                        );
+                                    }
+                                    return null;
+                                })()}
+                            </div>
                         </div>
                     </div>
                 ))}

@@ -108,7 +108,7 @@ const ShopProvider = ({ children }) => {
             try {
                 if (!payload || !payload.product) return;
                 setProducts(prev => {
-                    const exists = prev.some(p => p._id === payload.product._id || p._id === payload.product.productId);
+                    const exists = prev.some(p => String(p._id) === String(payload.product._id) || String(p._id) === String(payload.product.productId));
                     if (exists) return prev;
                     return [payload.product, ...prev];
                 });
@@ -118,7 +118,7 @@ const ShopProvider = ({ children }) => {
         const onProductUpdated = (payload) => {
             try {
                 if (!payload || !payload.product) return;
-                setProducts(prev => prev.map(p => (p._id === payload.product._id ? { ...p, ...payload.product } : p)));
+                setProducts(prev => prev.map(p => (String(p._id) === String(payload.product._id) ? { ...p, ...payload.product } : p)));
             } catch (e) { console.error('productUpdated handler error', e); }
         };
 
@@ -232,6 +232,17 @@ const ShopProvider = ({ children }) => {
         // Use a default placeholder for products without variants
         const variantSize = size || 'default';
 
+        // Check stock before updating local/cart
+        const currentLocalQty = (cartItems[itemId] && cartItems[itemId][variantSize]) || 0;
+        const available = product ? (product.stockCount || 0) : Infinity;
+        if (currentLocalQty + 1 > available) {
+            const remaining = Math.max(0, available - currentLocalQty);
+            toast.error(remaining > 0 ? `Only ${remaining} units available` : 'Out of stock');
+            return;
+        }
+
+        // Optimistically update local cart; if user is logged in, we'll revert on backend failure
+        const prevCart = JSON.parse(JSON.stringify(cartItems));
         setCartItems(prev => {
             const updated = { ...prev };
             if (!updated[itemId]) updated[itemId] = {};
@@ -251,6 +262,8 @@ const ShopProvider = ({ children }) => {
                 await userCartData();
             } catch (error) {
                 console.error(error);
+                // revert optimistic update
+                setCartItems(prevCart);
                 toast.error(error?.response?.data?.message || error.message);
             }
         }
@@ -267,7 +280,17 @@ const ShopProvider = ({ children }) => {
     }, [cartItems]);
 
     const updateQuantity = useCallback(async (itemId, variantSize, quantity) => {
-        // Update local mapping
+        // Check stock before updating
+        const product = products.find(p => p._id === itemId);
+        const available = product ? (product.stockCount || 0) : Infinity;
+        if (quantity > available) {
+            toast.error(available > 0 ? `Only ${available} units available` : 'Out of stock');
+            // clamp locally to available amount
+            quantity = Math.max(0, available);
+        }
+
+        // Update local mapping (optimistic)
+        const prevCart = JSON.parse(JSON.stringify(cartItems));
         setCartItems(prev => {
             const updated = { ...prev };
             if (quantity === 0) {
@@ -294,6 +317,8 @@ const ShopProvider = ({ children }) => {
                 );
             } catch (error) {
                 console.error(error);
+                // revert optimistic update
+                setCartItems(prevCart);
                 toast.error(error?.response?.data?.message || error.message);
             }
         }

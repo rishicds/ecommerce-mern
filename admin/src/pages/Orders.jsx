@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { assets } from "../assets/admin_assets/assets.js";
+import { initSocket } from '../socket.js';
 
 const Orders = () => {
     const currency = "$";
@@ -85,6 +86,29 @@ const Orders = () => {
         fetchAllOrders();
     }, []);
 
+    // Setup socket listener for live order updates
+    useEffect(() => {
+        const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
+        const socket = initSocket(backendUrl);
+        if (!socket) return;
+
+        const onOrderUpdated = (payload) => {
+            try {
+                const updated = payload?.order;
+                if (!updated) return;
+                setOrders(prev => prev.map(o => (o._id === updated._id ? { ...o, ...updated } : o)));
+            } catch (e) {
+                console.error('Error handling orderUpdated payload', e);
+            }
+        };
+
+        socket.on('orderUpdated', onOrderUpdated);
+
+        return () => {
+            try { socket.off('orderUpdated', onOrderUpdated); } catch (e) {}
+        };
+    }, []);
+
     if (loading) return <p className="p-4 text-center text-gray-500">Loading orders...</p>;
     if (!orders.length) return <p className="p-4 text-center text-gray-500">No orders found.</p>;
 
@@ -133,6 +157,8 @@ const Orders = () => {
                                 </div>
                                 <div className="hidden md:flex items-center gap-2">
                                     <p className={`px-2 py-0.5 rounded-full text-sm ${order.payment ? 'bg-green-50 text-green-700' : 'bg-yellow-50 text-yellow-700'}`}>{order.payment ? 'Paid' : 'Pending'}</p>
+                                    {/* Order-level status badge (e.g., Cancelled) */}
+                                    <p className={`px-2 py-0.5 rounded-full text-sm ${order.status === 'Cancelled' ? 'bg-red-50 text-red-700' : order.status === 'Delivered' ? 'bg-green-50 text-green-700' : order.status === 'Processing' ? 'bg-indigo-50 text-indigo-700' : 'bg-gray-50 text-gray-700'}`}>{order.status || 'N/A'}</p>
                                 </div>
                             </div>
 
@@ -210,6 +236,7 @@ const Orders = () => {
                                 <p className="text-sm text-gray-600">Total</p>
                                 <p className="text-3xl font-extrabold">{currency} {order.amount}</p>
                             </div>
+                            {/* Cancel option removed for admin to prevent accidental cancellations */}
                         </div>
 
                     </article>

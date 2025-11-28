@@ -53,9 +53,16 @@ const addToCart = async (req, res) => {
             item => item.productId.toString() === itemId && item.variantSize === variantSize
         );
 
+        // Ensure we don't exceed available stock
+        const existingQty = existingItemIndex > -1 ? cart.items[existingItemIndex].quantity : 0;
+        const requestedTotal = existingQty + quantity;
+        if (requestedTotal > (product.stockCount || 0)) {
+            return res.status(400).json({ success: false, message: `Only ${(product.stockCount || 0) - existingQty} more units available for this product` });
+        }
+
         if (existingItemIndex > -1) {
             // Update quantity
-            cart.items[existingItemIndex].quantity += quantity;
+            cart.items[existingItemIndex].quantity = requestedTotal;
         } else {
             // Add new item
             cart.items.push({
@@ -103,6 +110,12 @@ const updateCart = async (req, res) => {
             );
 
             if (itemIndex > -1) {
+                // Check requested quantity against product stock
+                const prod = await Product.findById(itemId);
+                if (!prod) return res.status(404).json({ success: false, message: 'Product not found' });
+                if (quantity > (prod.stockCount || 0)) {
+                    return res.status(400).json({ success: false, message: `Only ${prod.stockCount || 0} units available for this product` });
+                }
                 cart.items[itemIndex].quantity = quantity;
             } else {
                 return res.status(404).json({ success: false, message: "Item not found in cart" });

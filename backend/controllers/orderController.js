@@ -1,6 +1,8 @@
 import Order from "../models/orderModel.js";
 import Product from "../models/productModel.js";
 import User from "../models/userModel.js";
+import Cart from "../models/cartModel.js";
+import { getIO } from "../socket.js";
 
 // Place order using COD Method
 const placeOrderCOD = async (req, res) => {
@@ -10,18 +12,18 @@ const placeOrderCOD = async (req, res) => {
 
         // Basic validation
         if (!phone || !items || !Array.isArray(items) || items.length === 0 || !amount) {
-            return res.status(400).json({ error: "All fields are required." });
+            return res.status(400).json({ success: false, message: "All fields are required." });
         }
         const { street, city, state, zip, country } = address;
         if (!street || !city || !state || !zip || !country) {
-            return res.status(400).json({ error: "Complete address is required." });
+            return res.status(400).json({ success: false, message: "Complete address is required." });
         }
 
         // Validate each product exists and requested size/variant is available
         for (let item of items) {
             const product = await Product.findById(item.productId);
-            if (!product) {
-                return res.status(404).json({ error: `Product not found: ${item.name}` });
+                if (!product) {
+                return res.status(404).json({ success: false, message: `Product not found: ${item.name}` });
             }
             // Figure out requested size from either `variantSize` or legacy `size` field
             const requestedSize = item.variantSize || item.size || 'default';
@@ -32,7 +34,13 @@ const placeOrderCOD = async (req, res) => {
                 : (Array.isArray(product.sizes) ? product.sizes : []);
 
             if (variantSizes.length > 0 && !variantSizes.includes(requestedSize)) {
-                return res.status(400).json({ error: `Size ${requestedSize} not available for product ${item.name}` });
+                return res.status(400).json({ success: false, message: `Size ${requestedSize} not available for product ${item.name}` });
+            }
+
+            // Validate requested quantity against stock
+            const requestedQty = Number(item.quantity) || 0;
+            if (requestedQty > (product.stockCount || 0)) {
+                return res.status(400).json({ success: false, message: `Not enough stock for product ${item.name}. Available: ${product.stockCount || 0}` });
             }
 
             // Attach snapshot of product image URL to the order item so order reflects the image at booking time
@@ -58,6 +66,40 @@ const placeOrderCOD = async (req, res) => {
 
         await newOrder.save();
         await User.findByIdAndUpdate(userId, { cartData: {} }, { new: true });
+        // Clear server-side cart so user's cart is empty after successful order
+        try {
+            await Cart.findOneAndUpdate({ userId }, { items: [] }, { new: true, upsert: true });
+            const io = getIO();
+            if (io) {
+                const populated = await Cart.findOne({ userId }).populate('items.productId', 'name images price variants');
+                io.to(`user:${userId}`).emit('cartUpdated', populated || { items: [] });
+            }
+        } catch (e) {
+            console.error('Failed to clear user cart after order', e);
+        }
+
+        // Decrement stock for each ordered item and emit real-time update
+        try {
+            const io = getIO();
+            for (let item of items) {
+                try {
+                    const prod = await Product.findById(item.productId);
+                    if (!prod) continue;
+                    const qty = Number(item.quantity) || 0;
+                    const newStock = Math.max(0, (prod.stockCount || 0) - qty);
+                    prod.stockCount = newStock;
+                    prod.inStock = newStock > 0;
+                    await prod.save();
+                    if (io) {
+                        io.emit('productUpdated', { product: prod });
+                    }
+                } catch (e) {
+                    console.error('Failed updating product stock after order', e);
+                }
+            }
+        } catch (e) {
+            console.error('Stock update after order failed', e);
+        }
 
         return res.status(201).json({ success: true, message: "Order placed successfully with Cash on Delivery." });
     } catch (err) {
@@ -132,6 +174,14 @@ const orderStatus = async (req, res) => {
                 return res.status(404).json({ success: false, message: "Order or item not found." });
             }
 
+            // Emit order update so admin & user UIs can refresh without manual reload
+            try {
+                const io = getIO();
+                if (io) io.emit('orderUpdated', { order: updatedOrder });
+            } catch (e) {
+                console.error('Failed emitting orderUpdated (item update)', e);
+            }
+
             return res.status(200).json({ success: true, message: "Order item status updated successfully.", order: updatedOrder });
         }
 
@@ -140,10 +190,40 @@ const orderStatus = async (req, res) => {
             orderId,
             { status },
             { new: true }
-        ).populate("userId", "name email");
+        ).populate("userId", "name email").populate('items.productId');
 
         if (!updatedOrder) {
             return res.status(404).json({ success: false, message: "Order not found." });
+        }
+
+        // If order was cancelled, restore stock for each item
+        try {
+            if (status === 'Cancelled') {
+                const io = getIO();
+                for (let it of updatedOrder.items) {
+                    try {
+                        const p = await Product.findById(it.productId._id || it.productId);
+                        if (!p) continue;
+                        const qty = Number(it.quantity) || 0;
+                        p.stockCount = (p.stockCount || 0) + qty;
+                        p.inStock = p.stockCount > 0;
+                        await p.save();
+                        if (io) io.emit('productUpdated', { product: p });
+                    } catch (e) {
+                        console.error('Failed restoring stock for cancelled order', e);
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('Error handling stock on order status change', e);
+        }
+
+        // Emit order update so admin & user UIs can refresh without manual reload
+        try {
+            const io = getIO();
+            if (io) io.emit('orderUpdated', { order: updatedOrder });
+        } catch (e) {
+            console.error('Failed emitting orderUpdated (order-level)', e);
         }
 
         return res.status(200).json({ success: true, message: "Order status updated successfully.", order: updatedOrder });

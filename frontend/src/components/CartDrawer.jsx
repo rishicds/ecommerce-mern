@@ -40,7 +40,7 @@ const CartDrawer = () => {
                                 <img src={image} className="w-14 h-14 object-cover" />
                                 <div className="flex-1">
                                     <div className="text-sm font-medium">{name}</div>
-                                    <div className="text-xs text-gray-500">{variantSize}</div>
+                                                    <div className="text-xs text-gray-500">{variantSize && variantSize !== 'default' ? variantSize : ''}</div>
                                     <div className="mt-2 flex items-center gap-2">
                                         <button onClick={() => updateQuantity(pid, variantSize, Math.max(0, quantity - 1))} className="px-2 py-1 border">-</button>
                                         <div className="px-3">{quantity}</div>

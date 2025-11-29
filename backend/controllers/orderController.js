@@ -234,5 +234,68 @@ const orderStatus = async (req, res) => {
     }
 };
 
+// Allow a user to cancel their own order
+const cancelOrderByUser = async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const { orderId } = req.body;
 
-export { placeOrderCOD, placeOrderStripe, allOrders, userOrders, orderStatus };
+        if (!orderId) return res.status(400).json({ success: false, message: 'Order ID is required.' });
+
+        const order = await Order.findById(orderId).populate('items.productId');
+        if (!order) return res.status(404).json({ success: false, message: 'Order not found.' });
+
+        // Only allow owner to cancel their order
+        if (order.userId.toString() !== userId.toString()) {
+            return res.status(403).json({ success: false, message: 'Not authorized to cancel this order.' });
+        }
+
+        // Do not allow cancelling delivered orders or already cancelled
+        const curStatus = (order.status || '').toLowerCase();
+        if (curStatus === 'delivered') {
+            return res.status(400).json({ success: false, message: 'Cannot cancel a delivered order.' });
+        }
+        if (curStatus === 'cancelled') {
+            return res.status(400).json({ success: false, message: 'Order is already cancelled.' });
+        }
+
+        order.status = 'Cancelled';
+        await order.save();
+
+        // restore stock for items
+        try {
+            const io = getIO();
+            for (let it of order.items) {
+                try {
+                    const p = await Product.findById(it.productId._id || it.productId);
+                    if (!p) continue;
+                    const qty = Number(it.quantity) || 0;
+                    p.stockCount = (p.stockCount || 0) + qty;
+                    p.inStock = p.stockCount > 0;
+                    await p.save();
+                    if (io) io.emit('productUpdated', { product: p });
+                } catch (err) {
+                    console.error('Failed restoring product stock for user cancel', err);
+                }
+            }
+        } catch (err) {
+            console.error('Error restoring stock on user cancel', err);
+        }
+
+        // Emit orderUpdated so user/admin UIs refresh
+        try {
+            const io = getIO();
+            if (io) io.emit('orderUpdated', { order });
+        } catch (err) {
+            console.error('Failed emitting orderUpdated for user cancel', err);
+        }
+
+        return res.status(200).json({ success: true, message: 'Order cancelled successfully.', order });
+    } catch (error) {
+        console.error('Error cancelling order by user:', error);
+        return res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+};
+
+
+export { placeOrderCOD, placeOrderStripe, allOrders, userOrders, orderStatus, cancelOrderByUser };

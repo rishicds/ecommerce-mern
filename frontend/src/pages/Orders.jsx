@@ -17,9 +17,15 @@ function Orders() {
             if (res.data.success) {
                 let allOrdersItem = [];
                 res.data.orders.forEach((order) => {
+                    // If entire order is cancelled, skip its items
+                    const orderStatus = (order.status || '').toString().toLowerCase();
+                    const orderCancelled = orderStatus === 'cancelled' || orderStatus === 'canceled';
                     order.items.forEach((item) => {
                         // Prefer per-item status if present, otherwise fall back to order-level status
                         item.status = item.status || order.status;
+                        // Skip cancelled items or items whose parent order is cancelled
+                        const itemStatus = (item.status || '').toString().toLowerCase();
+                        if (orderCancelled || itemStatus === 'cancelled' || itemStatus === 'canceled') return;
                         item.payment = order.payment;
                         item.paymentMethod = order.paymentMethod;
                         // keep a reference to the parent order id so UI can show it
@@ -55,11 +61,12 @@ function Orders() {
                 const updated = payload?.order;
                 if (!updated) return;
                 // If entire order was cancelled, remove its items from the user orders list
-                if ((updated.status || '').toLowerCase() === 'cancelled') {
-                    setOrderData(prev => prev.filter(i => i.orderId !== updated._id));
+                const uStatus = (updated.status || '').toString().toLowerCase();
+                if (uStatus === 'cancelled' || uStatus === 'canceled') {
+                    setOrderData(prev => prev.filter(i => i.orderId?.toString() !== updated._id?.toString()));
                 } else {
                     // Otherwise, update statuses of items from this order
-                    setOrderData(prev => prev.map(item => item.orderId === updated._id ? { ...item, status: item.status || updated.status } : item));
+                    setOrderData(prev => prev.map(item => item.orderId?.toString() === updated._id?.toString() ? { ...item, status: item.status || updated.status } : item));
                 }
             } catch (e) {
                 console.error('Error handling orderUpdated on user orders page', e);
@@ -77,22 +84,39 @@ function Orders() {
     const cancelOrder = async (orderId) => {
         if (!orderId) return;
         try {
+            console.log('Attempting cancelOrder for:', orderId);
             const res = await axios.put(
-                `${backendUrl}/api/order/status`,
-                { orderId, status: 'Cancelled' },
+                `${backendUrl}/api/order/user/cancel`,
+                { orderId },
                 { withCredentials: true }
             );
 
             if (res.data.success) {
-                // Mark all items for this order as cancelled in local UI
-                setOrderData(prev => prev.map(item => item.orderId === orderId ? { ...item, status: 'Cancelled' } : item));
+                // remove items for this order from local UI (socket will also emit)
+                setOrderData(prev => prev.filter(item => item.orderId?.toString() !== orderId?.toString()));
+                // refresh from server to ensure consistent state
+                if (typeof loadOrderData === 'function') await loadOrderData();
                 toast.success('Order cancelled successfully.');
             } else {
                 toast.error(res.data.message || 'Failed to cancel order.');
             }
         } catch (error) {
-            console.error('Error cancelling order:', error);
-            toast.error('Something went wrong while cancelling the order.');
+            console.error('Error cancelling order:', error, error.response ? error.response.data : null);
+            const serverMsg = error?.response?.data?.message || error?.response?.data?.error || error?.message || 'Something went wrong while cancelling the order.';
+            toast.error(serverMsg);
+            // If server says the order is already cancelled, remove it from local UI (socket may have been missed)
+            try {
+                const low = (serverMsg || '').toString().toLowerCase();
+                if (low.includes('already cancelled') || low.includes('already canceled') || error?.response?.status === 400) {
+                    setOrderData(prev => prev.filter(item => item.orderId?.toString() !== orderId?.toString()));
+                    // refresh list to be safe and ensure consistent state
+                    if (typeof loadOrderData === 'function') {
+                        await loadOrderData();
+                    }
+                }
+            } catch (e) {
+                console.error('Error handling cancel error UI update', e);
+            }
         }
     };
 

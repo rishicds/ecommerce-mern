@@ -1,5 +1,6 @@
 import axios from "axios";
 import React, { useEffect, useRef, useState, useCallback } from "react";
+import { initSocket } from '../socket';
 import { useNavigate } from "react-router";
 import { toast } from "react-toastify";
 
@@ -59,6 +60,36 @@ const List = () => {
     useEffect(() => {
         fetchProducts();
     }, [fetchProducts]);
+
+    // Initialize socket for admin and listen for product updates
+    useEffect(() => {
+        const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
+        const socket = initSocket(backendUrl);
+        if (!socket) return;
+
+        const onProductUpdated = (payload) => {
+            try {
+                const prod = payload?.product;
+                if (!prod) return;
+                const updatedId = (prod._id || prod.id || '').toString();
+                setProducts(prev => prev.map(p => {
+                    if ((p._id || '').toString() === updatedId) {
+                        // merge updated fields (stockCount, inStock, price, images, name, etc.)
+                        return { ...p, ...prod };
+                    }
+                    return p;
+                }));
+            } catch (e) {
+                console.error('Error handling productUpdated on admin list', e);
+            }
+        };
+
+        socket.on('productUpdated', onProductUpdated);
+
+        return () => {
+            try { socket.off('productUpdated', onProductUpdated); } catch (e) {}
+        };
+    }, []);
 
     const lastProductRef = useCallback((node) => {
         if (loading) return;

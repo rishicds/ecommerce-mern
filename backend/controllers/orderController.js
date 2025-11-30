@@ -4,12 +4,13 @@ import User from "../models/userModel.js";
 import Cart from "../models/cartModel.js";
 import { getIO } from "../socket.js";
 import cloverService from "../services/cloverService.js";
+import { incrementUsageCount } from "./discountController.js";
 
 // Place order using COD Method
 const placeOrderCOD = async (req, res) => {
     try {
         const userId = req.user._id;
-        const { phone, items, amount, address } = req.body;
+        const { phone, items, amount, address, discountCode, discountAmount } = req.body;
 
         // Basic validation
         if (!phone || !items || !Array.isArray(items) || items.length === 0 || !amount) {
@@ -69,10 +70,17 @@ const placeOrderCOD = async (req, res) => {
             address,
             status: "Pending",
             paymentMethod: "CashOnDelivery",
-            payment: false
+            payment: false,
+            discountCode: discountCode || null,
+            discountAmount: discountAmount || 0
         });
 
         await newOrder.save();
+
+        // Increment discount code usage count if discount was applied
+        if (discountCode) {
+            await incrementUsageCount(discountCode);
+        }
 
         // Sync order to Clover
         try {
@@ -130,7 +138,7 @@ const placeOrderCOD = async (req, res) => {
 const placeOrderClover = async (req, res) => {
     try {
         const userId = req.user._id;
-        const { phone, items, amount, address } = req.body;
+        const { phone, items, amount, address, discountCode, discountAmount } = req.body;
         const origin = req.headers.origin || 'http://localhost:5173'; // Fallback for dev
 
         // Basic validation
@@ -156,7 +164,9 @@ const placeOrderClover = async (req, res) => {
             address,
             status: "Pending",
             paymentMethod: "Clover",
-            payment: false
+            payment: false,
+            discountCode: discountCode || null,
+            discountAmount: discountAmount || 0
         });
         await newOrder.save();
 
@@ -202,6 +212,15 @@ const verifyCloverPayment = async (req, res) => {
             order.status = "Processing"; // Or whatever initial paid status is
             // Store Clover IDs if available
             if (checkout_id) order.externalCloverId = checkout_id;
+
+            // Increment discount usage count if a discount was applied
+            try {
+                if (order.discountCode) {
+                    await incrementUsageCount(order.discountCode);
+                }
+            } catch (incErr) {
+                console.error('Failed to increment discount usage count:', incErr);
+            }
 
             await order.save();
 

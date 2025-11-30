@@ -7,11 +7,14 @@ import List from "./pages/List";
 import Orders from "./pages/Orders";
 import Categories from "./pages/Categories";
 import Settings from "./pages/Settings";
+import DiscountCodes from "./pages/DiscountCodes";
 import { ToastContainer } from 'react-toastify';
+import { useSync } from './context/SyncContext';
 import Login from "./components/Login";
 
 const App = () => {
   const { loading, user } = useAuth();
+  const { syncStatus } = useSync();
   if (loading) return <p className="text-center mt-10">Loading...</p>;
 
   return (
@@ -23,6 +26,10 @@ const App = () => {
           :
           (
             <>
+              {/* Show global sync banner while a Clover sync is in progress */}
+              {syncStatus === 'working' && (
+                <div className="w-full bg-blue-50 border-b border-blue-100 text-center py-2 text-sm text-blue-700">Syncing with Clover in progress…</div>
+              )}
               <Navbar />
               <hr className="border border-gray-300" />
               <div className="flex w-full">
@@ -36,6 +43,7 @@ const App = () => {
                       <Route path="/orders" element={<Orders />} />
                       <Route path="/categories" element={<Categories />} />
                       <Route path="/settings" element={<Settings />} />
+                      <Route path="/discount-codes" element={<DiscountCodes />} />
                     </Routes>
                   </div>
                 </main>

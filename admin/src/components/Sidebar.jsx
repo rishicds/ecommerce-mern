@@ -1,26 +1,10 @@
-import React, { useState } from "react";
+import React from "react";
 import { NavLink } from "react-router";
 import { assets } from "../assets/admin_assets/assets";
+import { useSync } from '../context/SyncContext';
 
 const Sidebar = () => {
-    const [syncStatus, setSyncStatus] = useState('idle'); // idle | working | success | error
-    const runSync = async () => {
-        try {
-            setSyncStatus('working');
-            const base = import.meta.env.VITE_BACKEND_URL || '';
-            const url = `${base.replace(/\/$/, '')}/api/admin/sync/clover`;
-            const res = await fetch(url, { method: 'POST', credentials: 'include' });
-            if (!res.ok) throw new Error(`Sync failed: ${res.status}`);
-            const json = await res.json();
-            console.log('Clover sync result', json);
-            setSyncStatus('success');
-            setTimeout(()=>setSyncStatus('idle'), 3000);
-        } catch (err) {
-            console.error('Sync error', err);
-            setSyncStatus('error');
-            setTimeout(()=>setSyncStatus('idle'), 4000);
-        }
-    };
+    const { syncStatus, runSync } = useSync();
 
     const items = [
         { to: '/add', icon: assets.add_icon, label: 'Add Items' },
@@ -28,6 +12,7 @@ const Sidebar = () => {
         { to: '/settings', icon: assets.add_icon, label: 'Settings' },
         { to: '/orders', icon: assets.order_icon, label: 'Orders' },
         { to: '/categories', icon: assets.order_icon, label: 'Categories' },
+        { to: '/discount-codes', icon: assets.add_icon, label: 'Discount Codes' },
     ];
 
     return (

@@ -14,6 +14,7 @@ const ShopProvider = ({ children }) => {
     const [cartDetails, setCartDetails] = useState([]); // detailed cart items from backend
     const [showCartDrawer, setShowCartDrawer] = useState(false);
     const [products, setProducts] = useState([]);
+    const [discount, setDiscount] = useState(null); // Applied discount code details
     const [mergedOnLogin, setMergedOnLogin] = useState(false);
     const limit = 10;
     const [nextCursor, setNextCursor] = useState(null);
@@ -25,6 +26,7 @@ const ShopProvider = ({ children }) => {
     useEffect(() => {
         if (!user) {
             setCartItems({});
+            setDiscount(null); // Clear discount when logging out
         }
     }, [user]);
 
@@ -119,6 +121,22 @@ const ShopProvider = ({ children }) => {
             try {
                 if (!payload || !payload.product) return;
                 setProducts(prev => prev.map(p => (String(p._id) === String(payload.product._id) ? { ...p, ...payload.product } : p)));
+                
+                // Also update cartDetails if this product is in the cart
+                setCartDetails(prev => prev.map(item => {
+                    if (String(item.productId) === String(payload.product._id)) {
+                        // Update name, price, and image from the updated product
+                        const updatedProduct = payload.product;
+                        const variantObj = updatedProduct.variants ? updatedProduct.variants.find(v => v.size === item.variantSize) : null;
+                        return {
+                            ...item,
+                            name: updatedProduct.name,
+                            price: variantObj ? variantObj.price : updatedProduct.price,
+                            image: updatedProduct.images?.[0]?.url || updatedProduct.image?.[0]?.url || item.image
+                        };
+                    }
+                    return item;
+                }));
             } catch (e) { console.error('productUpdated handler error', e); }
         };
 
@@ -346,6 +364,64 @@ const ShopProvider = ({ children }) => {
         return totalAmount;
     }, [cartItems, products, cartDetails]);
 
+    // Apply discount code
+    const applyDiscount = useCallback(async (code) => {
+        try {
+            // Build cart items for validation
+            const items = cartDetails.length > 0 
+                ? cartDetails.map(d => ({
+                    productId: d.productId,
+                    variantSize: d.variantSize,
+                    quantity: d.quantity
+                }))
+                : Object.keys(cartItems).flatMap(productId => 
+                    Object.keys(cartItems[productId]).map(variantSize => ({
+                        productId,
+                        variantSize,
+                        quantity: cartItems[productId][variantSize]
+                    }))
+                );
+
+            const response = await axios.post(
+                `${backendUrl}/api/discount/validate`,
+                { code, cartItems: items }
+            );
+
+            if (response.data.success) {
+                setDiscount({
+                    code: response.data.discountCode.code,
+                    discountType: response.data.discountCode.discountType,
+                    discountValue: response.data.discountCode.discountValue,
+                    totalDiscount: response.data.totalDiscount,
+                    eligibleProducts: response.data.eligibleProducts,
+                    ineligibleProducts: response.data.ineligibleProducts
+                });
+                toast.success('Discount code applied successfully!');
+                
+                // Show warnings for ineligible products
+                if (response.data.ineligibleProducts.length > 0) {
+                    toast.info(`${response.data.ineligibleProducts.length} product(s) not eligible for this discount`);
+                }
+            }
+        } catch (error) {
+            console.error('Error applying discount:', error);
+            console.error('Error response:', error?.response?.data);
+            toast.error(error?.response?.data?.message || 'Failed to apply discount code');
+        }
+    }, [cartItems, cartDetails, backendUrl]);
+
+    // Remove discount code
+    const removeDiscount = useCallback(() => {
+        setDiscount(null);
+        toast.info('Discount code removed');
+    }, []);
+
+    // Check if product in cart is eligible for discount
+    const isProductEligibleForDiscount = useCallback((productId) => {
+        if (!discount) return false;
+        return discount.eligibleProducts.some(p => String(p.productId) === String(productId));
+    }, [discount]);
+
     const contextValue = useMemo(() => ({
         products,
         currency,
@@ -365,8 +441,12 @@ const ShopProvider = ({ children }) => {
         setCartItems,
         setCartDetails,
         showCartDrawer,
-        setShowCartDrawer
-    }), [search, showSearch, cartItems, cartDetails, addToCart, getCartCount, updateQuantity, getCartAmount, navigate, products, showCartDrawer, setShowCartDrawer]);
+        setShowCartDrawer,
+        discount,
+        applyDiscount,
+        removeDiscount,
+        isProductEligibleForDiscount
+    }), [search, showSearch, cartItems, cartDetails, addToCart, getCartCount, updateQuantity, getCartAmount, navigate, products, showCartDrawer, setShowCartDrawer, discount, applyDiscount, removeDiscount, isProductEligibleForDiscount]);
 
     return (
         <ShopContext.Provider value={contextValue}>

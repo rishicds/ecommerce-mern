@@ -20,7 +20,9 @@ function PlaceOrder() {
         getCartAmount,
         navigate,
         backendUrl,
-        setCartItems
+        setCartItems,
+        discount,
+        removeDiscount
     } = useShop();
 
     const [formData, setFormData] = useState({
@@ -75,10 +77,17 @@ function PlaceOrder() {
                 }
             }
 
+            // Calculate final amount considering discount and taxes
+            const subtotal = getCartAmount();
+            const discountAmount = discount?.totalDiscount || 0;
+            const afterDiscount = Math.max(0, subtotal - discountAmount);
+            const taxes = afterDiscount * 0.06; // 6% estimated taxes
+            const finalAmount = afterDiscount + deliveryFee + taxes;
+
             const orderPayload = {
                 phone: formData.phone,
                 items: orderItems,
-                amount: getCartAmount() + deliveryFee,
+                amount: finalAmount,
                 address: {
                     street: formData.street,
                     city: formData.city,
@@ -87,7 +96,10 @@ function PlaceOrder() {
                     country: formData.country,
                     firstName: user?.name?.split(' ')[0] || '',
                     lastName: user?.name?.split(' ')[1] || ''
-                }
+                },
+                // Include discount information if applied
+                discountCode: discount ? discount.code : null,
+                discountAmount: discount ? discount.totalDiscount : 0
             };
 
             switch (paymentMethod) {
@@ -99,6 +111,7 @@ function PlaceOrder() {
 
                         if (res.data.success) {
                             setCartItems({});
+                            removeDiscount(); // Clear discount after successful order
                             navigate("/orders");
                             toast.success(res.data.message);
                         } else {
@@ -194,23 +207,46 @@ function PlaceOrder() {
                         </div>
 
                         <div className='mt-4'>
-                            <div className='flex justify-between text-sm'>
-                                <div>Subtotal</div>
-                                <div>{currency}{getCartAmount().toFixed(2)}</div>
-                            </div>
-                            <div className='flex justify-between text-sm mt-2'>
-                                <div>Shipping</div>
-                                <div>{currency}{deliveryFee.toFixed(2)}</div>
-                            </div>
-                            <div className='flex justify-between text-sm mt-2'>
-                                <div>Estimated taxes</div>
-                                <div>{currency}{(getCartAmount() * 0.06).toFixed(2)}</div>
-                            </div>
-                            <hr className='my-3' />
-                            <div className='flex justify-between text-base font-semibold'>
-                                <div>Total</div>
-                                <div>{currency}{(getCartAmount() + deliveryFee + (getCartAmount() * 0.06)).toFixed(2)}</div>
-                            </div>
+                                {/* Totals with discount (if applied) */}
+                                {(() => {
+                                    const subtotal = getCartAmount();
+                                    const discountAmount = discount?.totalDiscount || 0;
+                                    const afterDiscount = Math.max(0, subtotal - discountAmount);
+                                    const taxes = afterDiscount * 0.06; // 6% estimated taxes
+                                    const totalAmount = afterDiscount + deliveryFee + taxes;
+
+                                    return (
+                                        <>
+                                            <div className='flex justify-between text-sm'>
+                                                <div>Subtotal</div>
+                                                <div>{currency}{subtotal.toFixed(2)}</div>
+                                            </div>
+
+                                            {discountAmount > 0 && (
+                                                <div className='flex justify-between text-sm mt-2 text-green-600'>
+                                                    <div>Discount</div>
+                                                    <div>-{currency}{discountAmount.toFixed(2)}</div>
+                                                </div>
+                                            )}
+
+                                            <div className='flex justify-between text-sm mt-2'>
+                                                <div>Shipping</div>
+                                                <div>{currency}{deliveryFee.toFixed(2)}</div>
+                                            </div>
+
+                                            <div className='flex justify-between text-sm mt-2'>
+                                                <div>Estimated taxes</div>
+                                                <div>{currency}{taxes.toFixed(2)}</div>
+                                            </div>
+
+                                            <hr className='my-3' />
+                                            <div className='flex justify-between text-base font-semibold'>
+                                                <div>Total</div>
+                                                <div>{currency}{totalAmount.toFixed(2)}</div>
+                                            </div>
+                                        </>
+                                    );
+                                })()}
                         </div>
 
                         <div className='mt-4'>

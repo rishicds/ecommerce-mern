@@ -38,7 +38,9 @@ const orderSchema = new mongoose.Schema({
         enum: ["CashOnDelivery", "Stripe", "Clover"],
         required: true
     },
-    payment: { type: Boolean, required: true, default: false }
+    payment: { type: Boolean, required: true, default: false },
+    discountCode: { type: String, default: null },
+    discountAmount: { type: Number, default: 0 }
 }, { timestamps: true });
 
 const Order = mongoose.models.Order || mongoose.model("Order", orderSchema);

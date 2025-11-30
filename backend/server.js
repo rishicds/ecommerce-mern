@@ -14,6 +14,7 @@ import orderRoute from './routes/orderRoute.js';
 import categoryRoute from './routes/categoryRoute.js';
 import settingsRoute from './routes/settingsRoute.js';
 import cloverRoute from './routes/cloverRoute.js';
+import discountRoute from './routes/discountRoute.js';
 
 // App Config
 const app = express();
@@ -55,6 +56,7 @@ app.use('/api/cart/', cartRoute);
 app.use('/api/order', orderRoute);
 app.use('/api/settings', settingsRoute);
 app.use('/api/clover', cloverRoute);
+app.use('/api/discount', discountRoute);
 
 // create http server and attach socket.io
 const httpServer = createServer(app);

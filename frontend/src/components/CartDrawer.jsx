@@ -4,7 +4,7 @@ import CartTotal from './CartTotal';
 import { assets } from '../assets/frontend_assets/assets';
 
 const CartDrawer = () => {
-    const { cartDetails, cartItems, products, currency, updateQuantity, showCartDrawer, setShowCartDrawer, navigate, getCartAmount } = useShop();
+    const { cartDetails, cartItems, products, currency, updateQuantity, showCartDrawer, setShowCartDrawer, navigate, getCartAmount, discount, isProductEligibleForDiscount } = useShop();
 
     if (!showCartDrawer) return null;
 
@@ -33,21 +33,35 @@ const CartDrawer = () => {
                         const name = it.name || product.name || '';
                         // Prefer explicit price from cartDetails; otherwise use variant price if available, else base product price
                         const variantObj = product.variants ? product.variants.find(v => v.size === variantSize) : null;
-                        const price = it.price ?? (variantObj ? variantObj.price : (product.price ?? 0));
+                        // Normalize price safely — avoid mixing nullish and logical operators without parentheses
+                        const basePrice = it.price ?? (variantObj ? variantObj.price : (product.price ?? 0));
+                        const price = Number(basePrice || 0);
+                        const lineTotal = price * (Number(quantity) || 0);
+                        const isEligible = discount ? isProductEligibleForDiscount(pid) : null;
 
                         return (
                             <div key={`${pid}-${variantSize}-${idx}`} className="flex items-center gap-3">
                                 <img src={image} className="w-14 h-14 object-cover" />
                                 <div className="flex-1">
                                     <div className="text-sm font-medium">{name}</div>
-                                                    <div className="text-xs text-gray-500">{variantSize && variantSize !== 'default' ? variantSize : ''}</div>
+                                    <div className="text-xs text-gray-500">{variantSize && variantSize !== 'default' ? variantSize : ''}</div>
+                                    {/* Show discount eligibility */}
+                                    {discount && isEligible !== null && (
+                                        <div className='mt-1'>
+                                            {isEligible ? (
+                                                <span className='text-xs text-green-600'>✓ Discount applied</span>
+                                            ) : (
+                                                <span className='text-xs text-orange-600'>⚠ Not eligible</span>
+                                            )}
+                                        </div>
+                                    )}
                                     <div className="mt-2 flex items-center gap-2">
                                         <button onClick={() => updateQuantity(pid, variantSize, Math.max(0, quantity - 1))} className="px-2 py-1 border">-</button>
                                         <div className="px-3">{quantity}</div>
                                         <button onClick={() => updateQuantity(pid, variantSize, quantity + 1)} className="px-2 py-1 border">+</button>
                                     </div>
                                 </div>
-                                <div className="text-sm font-medium">{currency}{price}</div>
+                                <div className="text-sm font-medium">{currency}{lineTotal.toFixed(2)}</div>
                             </div>
                         );
                     })

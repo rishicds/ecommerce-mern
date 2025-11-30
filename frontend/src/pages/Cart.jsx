@@ -6,7 +6,7 @@ import CartTotal from '../components/CartTotal';
 import { toast } from 'react-toastify';
 
 function Cart() {
-    const { products, currency, cartItems, cartDetails, updateQuantity, navigate, getCartAmount } = useShop();
+    const { products, currency, cartItems, cartDetails, updateQuantity, navigate, getCartAmount, discount, isProductEligibleForDiscount } = useShop();
 
     useEffect(() => {
         // Ensure the cart page starts at the top when navigated to
@@ -57,6 +57,7 @@ function Cart() {
                         // Determine price: prefer item.price (from backend cartDetails), else variant price if product has variants, else base product price
                         const variantObj = productData.variants ? productData.variants.find(v => v.size === item.size) : null;
                         const displayPrice = item.price ?? (variantObj ? variantObj.price : (productData.price ?? 0));
+                        const isEligible = discount ? isProductEligibleForDiscount(item._id) : null;
 
                         return (
                             <div key={`${item._id}-${item.size}`} className='py-4 border-y border-gray-300 text-gray-700 grid grid-cols-[4fr_0.5fr_0.5fr] sm:grid-cols-[4fr_2fr_0.5fr] items-center gap-4'>
@@ -70,6 +71,16 @@ function Cart() {
                                                 <p className='px-2 sm:px-3 sm:py-1 border border-gray-300 bg-slate-50'>{item.size}</p>
                                             )}
                                         </div>
+                                        {/* Show discount eligibility */}
+                                        {discount && isEligible !== null && (
+                                            <div className='mt-1'>
+                                                {isEligible ? (
+                                                    <span className='text-xs text-green-600'>✓ Discount applied</span>
+                                                ) : (
+                                                    <span className='text-xs text-orange-600'>⚠ Not eligible for this discount</span>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                                 <div className='flex items-center gap-2'>

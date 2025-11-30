@@ -2,6 +2,7 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 import { AuthContext } from "./AuthContext";
 import { toast } from "react-toastify";
+import { useSync } from './SyncContext';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -9,11 +10,21 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
+    const { runSync } = useSync();
+
     const checkAuth = async () => {
         try {
             const res = await axios.get(`${backendUrl}/api/admin/dashboard`, { withCredentials: true });
             if (res.data.success) {
                 setUser(res.data.admin);
+                // Trigger an automatic Clover sync when admin is authenticated
+                try {
+                    if (typeof runSync === 'function') {
+                        runSync();
+                    }
+                } catch (e) {
+                    console.error('Auto sync failed', e);
+                }
             }
         } catch (err) {
             console.log(err);

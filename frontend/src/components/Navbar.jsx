@@ -188,41 +188,8 @@ const Navbar = () => {
                     {/* Top navigation */}
                     <div className='flex items-center justify-between py-4 font-medium'>
                     
-                    {/* Left icons group (mobile only) */}
-                    <div className='flex items-center gap-2 sm:hidden'>
-                        {/* Mobile search toggle */}
-                        <button
-                            onClick={() => setMobileSearchVisible(v => !v)}
-                            className='w-5 h-5 flex items-center justify-center hover:opacity-70 transition-opacity'
-                            aria-label='Open search'
-                        >
-                            <img src={assets.search_icon} alt="search" className='w-4' />
-                        </button>
-
-                        {/* Notifications bell */}
-                        <div className='relative'>
-                            <div className='relative inline-block'>
-                                <button
-                                    onClick={() => {
-                                        if (!user) return navigate('/login');
-                                        navigate('/notifications');
-                                    }}
-                                    className='w-7 h-7 flex items-center justify-center hover:opacity-70 transition-opacity'
-                                    aria-label='Notifications'
-                                >
-                                    <GoBell className='text-xl leading-none' aria-hidden='true' />
-                                </button>
-                                {unreadCount > 0 && (
-                                    <span className='absolute -right-1 -top-1 bg-[#FFB81C] text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px]'>
-                                        {unreadCount}
-                                    </span>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Center - Logo */}
-                    <Link to='/' className='flex items-center justify-center flex-1 sm:flex-none'>
+                    {/* Logo (left) */}
+                    <Link to='/' className='flex items-center gap-2'>
                         <h1 className='text-lg sm:text-2xl font-bold text-[#FFB81C]'>Knight St. Vape</h1>
                     </Link>
 
@@ -243,21 +210,30 @@ const Navbar = () => {
 
                     {/* Right icons group */}
                     <div className='flex items-center gap-2 sm:gap-6'>
-                        {/* Desktop notifications bell */}
-                        <div className='hidden sm:block relative'>
+                        {/* Mobile search toggle (appear in right group) */}
+                        <button
+                            onClick={() => setMobileSearchVisible(v => !v)}
+                            className='sm:hidden w-5 h-5 flex items-center justify-center hover:opacity-70 transition-opacity'
+                            aria-label='Open search'
+                        >
+                            <img src={assets.search_icon} alt="search" className='w-4' />
+                        </button>
+
+                        {/* Notifications bell */}
+                        <div className='relative'>
                             <div className='relative inline-block'>
                                 <button
                                     onClick={() => {
                                         if (!user) return navigate('/login');
                                         navigate('/notifications');
                                     }}
-                                    className='w-9 h-9 flex items-center justify-center hover:opacity-70 transition-opacity'
+                                    className='w-7 h-7 sm:w-9 sm:h-9 flex items-center justify-center hover:opacity-70 transition-opacity'
                                     aria-label='Notifications'
                                 >
-                                    <GoBell className='text-3xl leading-none' aria-hidden='true' />
+                                    <GoBell className='text-xl sm:text-3xl leading-none' aria-hidden='true' />
                                 </button>
                                 {unreadCount > 0 && (
-                                    <span className='absolute -right-1 -top-1 bg-[#FFB81C] text-white rounded-full w-5 h-5 flex items-center justify-center text-xs'>
+                                    <span className='absolute -right-1 -top-1 bg-[#FFB81C] text-white rounded-full w-5 h-5 sm:w-5 sm:h-5 flex items-center justify-center text-[10px] sm:text-xs'>
                                         {unreadCount}
                                     </span>
                                 )}

@@ -23,6 +23,8 @@ const Profile = () => {
 
   useEffect(() => {
     if (user) {
+      console.log('User data in Profile:', user);
+      console.log('createdAt value:', user.createdAt);
       setFormData({
         name: user.name || '',
         email: user.email || '',
@@ -128,11 +130,18 @@ const Profile = () => {
                 <div className="w-full pt-4 border-t border-gray-100">
                   <div className="text-xs text-gray-500 mb-1">Member since</div>
                   <div className="text-sm font-medium text-gray-900">
-                    {user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric'
-                    }) : 'N/A'}
+                    {user.createdAt ? (() => {
+                      try {
+                        const date = new Date(user.createdAt);
+                        return isNaN(date.getTime()) ? 'Recently joined' : date.toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric'
+                        });
+                      } catch (e) {
+                        return 'Recently joined';
+                      }
+                    })() : 'Recently joined'}
                   </div>
                 </div>
 

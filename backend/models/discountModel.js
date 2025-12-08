@@ -48,8 +48,7 @@ const discountCodeSchema = new mongoose.Schema({
     timestamps: true
 });
 
-// Index for faster code lookups
-discountCodeSchema.index({ code: 1 });
+// Index for faster status lookups
 discountCodeSchema.index({ status: 1 });
 
 const DiscountCode = mongoose.model('DiscountCode', discountCodeSchema);

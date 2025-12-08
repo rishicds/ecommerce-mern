@@ -140,6 +140,9 @@ const addProduct = async (req, res) => {
         } catch (e) {
             console.error('Failed to emit productCreated socket event:', e);
         }
+
+        // Send success response
+        res.json({ success: true, message: "Product added successfully" });
     } catch (error) {
         console.error("Add Product Error:", error);
         res.status(500).json({ success: false, message: error.message });

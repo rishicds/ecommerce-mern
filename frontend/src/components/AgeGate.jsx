@@ -8,7 +8,7 @@ const AgeGate = ({ storageKey = "ageVerified", defaultMinAge = 19 }) => {
   const defaultYear = 2025;
   const [year, setYear] = useState(defaultYear);
   const minAge = defaultMinAge; // fixed minimum age (19 by default)
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(false); 
 
   useEffect(() => {
     try {

@@ -15,6 +15,7 @@ import categoryRoute from './routes/categoryRoute.js';
 import settingsRoute from './routes/settingsRoute.js';
 import cloverRoute from './routes/cloverRoute.js';
 import discountRoute from './routes/discountRoute.js';
+import wishlistRoute from './routes/wishlistRoute.js';
 
 // App Config
 const app = express();
@@ -57,6 +58,7 @@ app.use('/api/order', orderRoute);
 app.use('/api/settings', settingsRoute);
 app.use('/api/clover', cloverRoute);
 app.use('/api/discount', discountRoute);
+app.use('/api/wishlist', wishlistRoute);
 
 // Serve Static Files
 import path from 'path';

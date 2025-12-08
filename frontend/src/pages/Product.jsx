@@ -10,7 +10,7 @@ import RelatedProducts from '../components/RelatedProducts';
 
 function Product() {
     const { productId } = useParams();
-    const { products, currency, addToCart, backendUrl } = useShop();
+    const { products, currency, addToCart, backendUrl, addToWishlist, removeFromWishlist, isInWishlist } = useShop();
     const { user } = useAuth();
 
     const [productDetails, setProductDetails] = useState(null);
@@ -19,6 +19,8 @@ function Product() {
     const [waitlisted, setWaitlisted] = useState(false);
     const [waitlistLoading, setWaitlistLoading] = useState(false);
     const navigate = useNavigate();
+    
+    const inWishlist = productDetails ? isInWishlist(productDetails._id) : false;
 
     useEffect(() => {
         const product = products.find(item => item._id === productId);
@@ -147,7 +149,7 @@ function Product() {
                                 src={img.url}
                                 key={img._id || img.public_id || img.url}
                                 alt={img._id || img.public_id}
-                                className='w-[24%] sm:w-full sm:mb-3 flex-shrink-0 cursor-pointer'
+                                className='w-[24%] sm:w-full sm:mb-3 shrink-0 cursor-pointer'
                             />
                         ))}
                     </div>
@@ -242,6 +244,38 @@ function Product() {
                         ) : null}
 
                         <button onClick={() => addToCart(productDetails._id, size)} className='bg-black text-white px-6 py-2 text-sm active:bg-gray-700 h-10'>ADD TO CART</button>
+                        
+                        {/* Wishlist button */}
+                        <button
+                            onClick={() => {
+                                if (inWishlist) {
+                                    removeFromWishlist(productDetails._id);
+                                } else {
+                                    addToWishlist(productDetails._id);
+                                }
+                            }}
+                            className={`flex items-center gap-2 px-6 py-2 text-sm h-10 border ${
+                                inWishlist 
+                                    ? 'bg-red-50 border-red-500 text-red-600 hover:bg-red-100' 
+                                    : 'bg-white border-gray-300 text-gray-700 hover:border-black'
+                            }`}
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-5 w-5"
+                                fill={inWishlist ? "red" : "none"}
+                                viewBox="0 0 24 24"
+                                stroke={inWishlist ? "red" : "currentColor"}
+                                strokeWidth={2}
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                                />
+                            </svg>
+                            {inWishlist ? 'REMOVE FROM WISHLIST' : 'ADD TO WISHLIST'}
+                        </button>
                     </div>
 
                     <hr className='mt-8 sm:w-3/4 border-gray-300' />

@@ -16,6 +16,7 @@ const ShopProvider = ({ children }) => {
     const [products, setProducts] = useState([]);
     const [discount, setDiscount] = useState(null); // Applied discount code details
     const [mergedOnLogin, setMergedOnLogin] = useState(false);
+    const [wishlist, setWishlist] = useState([]); // Array of product IDs in wishlist
     const limit = 10;
     const [nextCursor, setNextCursor] = useState(null);
     const [hasMore, setHasMore] = useState(true);
@@ -27,6 +28,7 @@ const ShopProvider = ({ children }) => {
         if (!user) {
             setCartItems({});
             setDiscount(null); // Clear discount when logging out
+            setWishlist([]); // Clear wishlist when logging out
         }
     }, [user]);
 
@@ -98,6 +100,7 @@ const ShopProvider = ({ children }) => {
         fetchProducts();
         if (user) {
             userCartData();
+            fetchWishlist();
         }
     }, [fetchProducts, user, userCartData]);
 
@@ -422,6 +425,88 @@ const ShopProvider = ({ children }) => {
         return discount.eligibleProducts.some(p => String(p.productId) === String(productId));
     }, [discount]);
 
+    // Fetch user wishlist
+    const fetchWishlist = useCallback(async () => {
+        try {
+            const res = await axios.get(`${backendUrl}/api/wishlist/get`, { withCredentials: true });
+            if (res.data?.success) {
+                const productIds = res.data.wishlist.products.map(item => 
+                    item.productId._id || item.productId
+                );
+                setWishlist(productIds);
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error(error?.response?.data?.message || error.message);
+        }
+    }, []);
+
+    // Add to wishlist
+    const addToWishlist = useCallback(async (productId) => {
+        if (!user) {
+            toast.error('Please login to add items to wishlist');
+            navigate('/login');
+            return;
+        }
+
+        try {
+            const res = await axios.post(
+                `${backendUrl}/api/wishlist/add`,
+                { productId },
+                { withCredentials: true }
+            );
+            if (res.data.success) {
+                setWishlist(prev => [...prev, productId]);
+                toast.success('Added to wishlist');
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error(error?.response?.data?.message || error.message);
+        }
+    }, [user, navigate]);
+
+    // Remove from wishlist
+    const removeFromWishlist = useCallback(async (productId) => {
+        try {
+            const res = await axios.post(
+                `${backendUrl}/api/wishlist/remove`,
+                { productId },
+                { withCredentials: true }
+            );
+            if (res.data.success) {
+                setWishlist(prev => prev.filter(id => id !== productId));
+                toast.success('Removed from wishlist');
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error(error?.response?.data?.message || error.message);
+        }
+    }, []);
+
+    // Check if product is in wishlist
+    const isInWishlist = useCallback((productId) => {
+        return wishlist.includes(productId);
+    }, [wishlist]);
+
+    // Move from wishlist to cart
+    const moveToCart = useCallback(async (productId, variantSize = 'default') => {
+        try {
+            const res = await axios.post(
+                `${backendUrl}/api/wishlist/move-to-cart`,
+                { productId, variantSize },
+                { withCredentials: true }
+            );
+            if (res.data.success) {
+                setWishlist(prev => prev.filter(id => id !== productId));
+                await userCartData();
+                toast.success('Product moved to cart');
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error(error?.response?.data?.message || error.message);
+        }
+    }, [userCartData]);
+
     const contextValue = useMemo(() => ({
         products,
         currency,
@@ -445,8 +530,14 @@ const ShopProvider = ({ children }) => {
         discount,
         applyDiscount,
         removeDiscount,
-        isProductEligibleForDiscount
-    }), [search, showSearch, cartItems, cartDetails, addToCart, getCartCount, updateQuantity, getCartAmount, navigate, products, showCartDrawer, setShowCartDrawer, discount, applyDiscount, removeDiscount, isProductEligibleForDiscount]);
+        isProductEligibleForDiscount,
+        wishlist,
+        addToWishlist,
+        removeFromWishlist,
+        isInWishlist,
+        moveToCart,
+        fetchWishlist
+    }), [search, showSearch, cartItems, cartDetails, addToCart, getCartCount, updateQuantity, getCartAmount, navigate, products, showCartDrawer, setShowCartDrawer, discount, applyDiscount, removeDiscount, isProductEligibleForDiscount, wishlist, addToWishlist, removeFromWishlist, isInWishlist, moveToCart, fetchWishlist]);
 
     return (
         <ShopContext.Provider value={contextValue}>

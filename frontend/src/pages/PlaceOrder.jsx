@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Title from '../components/Title';
 import CartTotal from '../components/CartTotal';
 import { assets } from '../assets/frontend_assets/assets';
@@ -36,6 +36,24 @@ function PlaceOrder() {
         country: "",
         phone: ""
     });
+
+    // Auto-fill form with user profile data
+    useEffect(() => {
+        if (user) {
+            setFormData(prev => ({
+                ...prev,
+                firstName: user.name?.split(' ')[0] || prev.firstName,
+                lastName: user.name?.split(' ').slice(1).join(' ') || prev.lastName,
+                email: user.email || prev.email,
+                phone: user.phone || prev.phone,
+                street: user.address?.street || prev.street,
+                city: user.address?.city || prev.city,
+                state: user.address?.state || prev.state,
+                zipcode: user.address?.zipcode || prev.zipcode,
+                country: user.address?.country || prev.country
+            }));
+        }
+    }, [user]);
 
     const onChangeHandler = (e) => {
         const { name, value } = e.target;
@@ -170,7 +188,19 @@ function PlaceOrder() {
                     <input required name='zipcode' value={formData.zipcode} onChange={onChangeHandler} className='border border-gray-300 rounded py-1.5 px-3.5 w-full' placeholder='Zipcode' type="number" />
                     <input required name='country' value={formData.country} onChange={onChangeHandler} className='border border-gray-300 rounded py-1.5 px-3.5 w-full' placeholder='Country' type="text" />
                 </div>
-                <input required name='phone' value={formData.phone} onChange={onChangeHandler} className='border border-gray-300 rounded py-1.5 px-3.5 w-full' placeholder='Phone number' type="number" />
+                <input 
+                    required 
+                    name='phone' 
+                    value={formData.phone} 
+                    onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                        setFormData(prev => ({ ...prev, phone: value }));
+                    }}
+                    maxLength={10}
+                    className='border border-gray-300 rounded py-1.5 px-3.5 w-full' 
+                    placeholder='Phone number (10 digits)' 
+                    type="tel" 
+                />
             </div>
 
             {/* Right Side */}

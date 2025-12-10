@@ -70,13 +70,13 @@ const __dirname = path.dirname(__filename);
 
 // Serve Admin Panel
 app.use('/admin', express.static(path.join(__dirname, '../admin/dist')));
-app.get('/admin/*', (req, res) => {
+app.get(/^\/admin\/.*/, (req, res) => {
     res.sendFile(path.join(__dirname, '../admin/dist/index.html'));
 });
 
 // Serve Frontend (Store)
 app.use('/', express.static(path.join(__dirname, '../frontend/dist')));
-app.get('*', (req, res) => {
+app.get(/^\/(?!api|admin).*/, (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
 });
 

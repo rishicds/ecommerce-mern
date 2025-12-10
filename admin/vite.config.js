@@ -9,5 +9,6 @@ export default defineConfig({
     react(),
     tailwindcss()
   ],
-  server: {port: 5176}
+  base: "/admin/",
+  server: { port: 5176 }
 })

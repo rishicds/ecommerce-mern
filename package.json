@@ -5,15 +5,16 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "install-all": "pnpm install -r",
-    "dev": "pnpm run dev -r",
-    "build": "pnpm run build -r",
-    "build-backend": "cd backend && pnpm install",
-    "build-frontend": "cd frontend && pnpm install && pnpm run build",
-    "build-admin": "cd admin && pnpm install && pnpm run build",
-    "start-backend": "cd backend && pnpm start",
-    "start-frontend": "cd frontend && pnpm run dev",
-    "start-admin": "cd admin && pnpm run dev"
+    "install-all": "npm install",
+    "dev": "npm run dev --workspaces",
+    "build": "npm run build-frontend && npm run build-admin && npm run build-backend",
+    "start": "npm run start-backend",
+    "build-backend": "echo 'Backend ready'",
+    "build-frontend": "cd frontend && npm run build",
+    "build-admin": "cd admin && npm run build",
+    "start-backend": "cd backend && npm start",
+    "start-frontend": "cd frontend && npm run dev",
+    "start-admin": "cd admin && npm run dev"
   },
   "workspaces": [
     "backend",

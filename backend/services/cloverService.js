@@ -2,9 +2,14 @@
 
 class CloverService {
   constructor() {
-    this.baseUrl = 'https://apisandbox.dev.clover.com/v3/merchants';
+    this.env = process.env.CLOVER_ENV || 'sandbox'; // 'sandbox' or 'production'
     this.merchantId = process.env.CLOVER_MERCHANT_ID;
     this.apiToken = process.env.CLOVER_API_TOKEN;
+
+    // Base URL for Merchant API
+    this.baseUrl = this.env === 'production'
+      ? 'https://api.clover.com/v3/merchants'
+      : 'https://apisandbox.dev.clover.com/v3/merchants';
   }
 
   getHeaders() {
@@ -225,9 +230,14 @@ class CloverService {
   async chargeToken(token, amount) {
     if (!this.merchantId || !this.apiToken) return null;
     try {
-      // Using /v1/charges for tokenized payments (hypothetical endpoint based on common Clover Ecomm patterns)
-      // If this fails, we might need to adjust based on specific Clover setup
-      const response = await fetch(`https://scl-sandbox.dev.clover.com/v1/charges`, {
+      // Determine correct endpoint for charges
+      // Sandbox: SCL Sandbox
+      // Production: SCL Production
+      const chargeBaseUrl = this.env === 'production'
+        ? 'https://scl.clover.com'
+        : 'https://scl-sandbox.dev.clover.com';
+
+      const response = await fetch(`${chargeBaseUrl}/v1/charges`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${this.apiToken}`,
@@ -241,24 +251,8 @@ class CloverService {
       });
 
       if (!response.ok) {
-        // Fallback for production URL if sandbox fails or vice versa
-        const prodResponse = await fetch(`https://scl.clover.com/v1/charges`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${this.apiToken}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            amount: amount,
-            currency: 'usd',
-            source: token
-          })
-        });
-        if (!prodResponse.ok) {
-          console.error(`Clover Charge Error: ${prodResponse.statusText}`);
-          throw new Error(`Clover Charge Failed: ${prodResponse.statusText}`);
-        }
-        return await prodResponse.json();
+        console.error(`Clover Charge Error: ${response.statusText}`);
+        throw new Error(`Clover Charge Failed: ${response.statusText}`);
       }
       return await response.json();
     } catch (error) {
@@ -295,16 +289,14 @@ class CloverService {
       };
 
       // Hosted Checkout Endpoint
-      // Note: The base URL for Hosted Checkout might be different or use the same base.
-      // Documentation says /invoicingcheckoutservice/v1/checkouts
-      // We'll append this to the base URL, but we need to be careful if base URL includes /v3/merchants
+      // Sandbox: apisandbox.dev.clover.com/invoicingcheckoutservice/v1/checkouts
+      // Prod: api.clover.com/invoicingcheckoutservice/v1/checkouts
 
-      // Adjusting base URL for this specific call if needed. 
-      // The constructor sets baseUrl to 'https://apisandbox.dev.clover.com/v3/merchants'
-      // We need 'https://apisandbox.dev.clover.com/invoicingcheckoutservice/v1/checkouts'
+      const checkoutBaseUrl = this.env === 'production'
+        ? 'https://api.clover.com'
+        : 'https://apisandbox.dev.clover.com';
 
-      const baseUrlHost = this.baseUrl.split('/v3')[0];
-      const url = `${baseUrlHost}/invoicingcheckoutservice/v1/checkouts`;
+      const url = `${checkoutBaseUrl}/invoicingcheckoutservice/v1/checkouts`;
 
       const response = await fetch(url, {
         method: 'POST',

@@ -17,7 +17,7 @@ const ShopProvider = ({ children }) => {
     const [discount, setDiscount] = useState(null); // Applied discount code details
     const [mergedOnLogin, setMergedOnLogin] = useState(false);
     const [wishlist, setWishlist] = useState([]); // Array of product IDs in wishlist
-    const limit = 10;
+    const limit = 1000;
     const [nextCursor, setNextCursor] = useState(null);
     const [hasMore, setHasMore] = useState(true);
     const navigate = useNavigate();
@@ -124,7 +124,7 @@ const ShopProvider = ({ children }) => {
             try {
                 if (!payload || !payload.product) return;
                 setProducts(prev => prev.map(p => (String(p._id) === String(payload.product._id) ? { ...p, ...payload.product } : p)));
-                
+
                 // Also update cartDetails if this product is in the cart
                 setCartDetails(prev => prev.map(item => {
                     if (String(item.productId) === String(payload.product._id)) {
@@ -186,7 +186,7 @@ const ShopProvider = ({ children }) => {
 
             s.on('cartUpdated', onCartUpdated);
         }
-        
+
         return () => {
             try {
                 if (s) {
@@ -371,13 +371,13 @@ const ShopProvider = ({ children }) => {
     const applyDiscount = useCallback(async (code) => {
         try {
             // Build cart items for validation
-            const items = cartDetails.length > 0 
+            const items = cartDetails.length > 0
                 ? cartDetails.map(d => ({
                     productId: d.productId,
                     variantSize: d.variantSize,
                     quantity: d.quantity
                 }))
-                : Object.keys(cartItems).flatMap(productId => 
+                : Object.keys(cartItems).flatMap(productId =>
                     Object.keys(cartItems[productId]).map(variantSize => ({
                         productId,
                         variantSize,
@@ -400,7 +400,7 @@ const ShopProvider = ({ children }) => {
                     ineligibleProducts: response.data.ineligibleProducts
                 });
                 toast.success('Discount code applied successfully!');
-                
+
                 // Show warnings for ineligible products
                 if (response.data.ineligibleProducts.length > 0) {
                     toast.info(`${response.data.ineligibleProducts.length} product(s) not eligible for this discount`);
@@ -430,7 +430,7 @@ const ShopProvider = ({ children }) => {
         try {
             const res = await axios.get(`${backendUrl}/api/wishlist/get`, { withCredentials: true });
             if (res.data?.success) {
-                const productIds = res.data.wishlist.products.map(item => 
+                const productIds = res.data.wishlist.products.map(item =>
                     item.productId._id || item.productId
                 );
                 setWishlist(productIds);

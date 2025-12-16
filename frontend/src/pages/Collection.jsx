@@ -20,6 +20,7 @@ const initialState = {
     showFilter: false,
     filterProducts: [],
     sortOrder: 'relevant',
+    currentPage: 1, // Add current page state
 };
 
 const reducer = (state, action) => {
@@ -50,6 +51,8 @@ const reducer = (state, action) => {
             return { ...state, showFilter: action.payload };
         case 'SET_SORT_ORDER':
             return { ...state, sortOrder: action.payload };
+        case 'SET_CURRENT_PAGE':
+            return { ...state, currentPage: action.payload };
         default:
             return state;
     }
@@ -74,8 +77,9 @@ const sortProducts = (productsToSort, sortOrder) => {
 function Collection() {
     const { products, search, showSearch } = useShop();
     const [state, dispatch] = useReducer(reducer, initialState);
-    const { category, subCategory, brand, collection, flavour, flavourType, priceRange, nicotine, options, type, showFilter, filterProducts, sortOrder } = state;
+    const { category, subCategory, brand, collection, flavour, flavourType, priceRange, nicotine, options, type, showFilter, filterProducts, sortOrder, currentPage } = state;
     const location = useLocation();
+    const itemsPerPage = 20; // Define items per page
 
     const qParam = useMemo(() => {
         try {
@@ -129,6 +133,7 @@ function Collection() {
 
     const handleToggle = (type, value) => {
         dispatch({ type, payload: value });
+        dispatch({ type: 'SET_CURRENT_PAGE', payload: 1 }); // Reset to page 1 on filter change
     };
 
     const handleSortChange = (e) => {
@@ -399,18 +404,38 @@ function Collection() {
 
                 {/* Product Grid or Fallback Message */}
                 {filterProducts.length > 0 ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 gap-y-6">
-                        {filterProducts.map(item => (
-                            <ProductItem
-                                key={item._id}
-                                id={item._id}
-                                images={item.images || item.image}
-                                name={item.name}
-                                price={item.price}
-                                highlight={activeQuery}
-                            />
-                        ))}
-                    </div>
+                    <>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 gap-y-6">
+                            {filterProducts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(item => (
+                                <ProductItem
+                                    key={item._id}
+                                    id={item._id}
+                                    images={item.images || item.image}
+                                    name={item.name}
+                                    price={item.price}
+                                    highlight={activeQuery}
+                                />
+                            ))}
+                        </div>
+                        {/* Pagination */}
+                        <div className="flex justify-center items-center gap-4 mt-8">
+                            <button
+                                onClick={() => dispatch({ type: 'SET_CURRENT_PAGE', payload: Math.max(1, currentPage - 1) })}
+                                disabled={currentPage === 1}
+                                className={`px-4 py-2 border ${currentPage === 1 ? 'text-gray-400 bg-gray-100 cursor-not-allowed' : 'text-gray-700 bg-white hover:bg-gray-50'}`}
+                            >
+                                Previous
+                            </button>
+                            <span className="text-gray-700">Page {currentPage} of {Math.ceil(filterProducts.length / itemsPerPage)}</span>
+                            <button
+                                onClick={() => dispatch({ type: 'SET_CURRENT_PAGE', payload: Math.min(Math.ceil(filterProducts.length / itemsPerPage), currentPage + 1) })}
+                                disabled={currentPage === Math.ceil(filterProducts.length / itemsPerPage)}
+                                className={`px-4 py-2 border ${currentPage === Math.ceil(filterProducts.length / itemsPerPage) ? 'text-gray-400 bg-gray-100 cursor-not-allowed' : 'text-gray-700 bg-white hover:bg-gray-50'}`}
+                            >
+                                Next
+                            </button>
+                        </div>
+                    </>
                 ) : (
                     <div className="text-center text-gray-600 py-10">
                         No products found.

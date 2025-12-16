@@ -160,6 +160,59 @@ const List = () => {
         }
     };
 
+    const handleDownloadTemplate = async () => {
+        try {
+            const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/product/template`, {
+                responseType: 'blob',
+                withCredentials: true
+            });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'products_template.xlsx');
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (error) {
+            console.error('Error downloading template:', error);
+            toast.error('Failed to download template');
+        }
+    };
+
+    const handleImportClick = () => {
+        document.getElementById('import-input').click();
+    };
+
+    const handleImportFile = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const tId = toast.loading("Importing products...");
+
+        try {
+            const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/product/import`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+                withCredentials: true
+            });
+
+            if (res.data.success) {
+                toast.update(tId, { render: res.data.message, type: "success", isLoading: false, autoClose: 3000 });
+                fetchProducts(1); // Refresh list
+            } else {
+                toast.update(tId, { render: res.data.message, type: "error", isLoading: false, autoClose: 3000 });
+            }
+        } catch (error) {
+            console.error('Import error:', error);
+            const msg = error.response?.data?.message || 'Failed to import products';
+            toast.update(tId, { render: msg, type: "error", isLoading: false, autoClose: 3000 });
+        }
+        // clear input
+        e.target.value = null;
+    };
+
     return (
         <>
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
@@ -184,6 +237,28 @@ const List = () => {
                         </button>
                     )}
                 </div>
+            </div>
+
+            <div className="flex gap-2 mb-4">
+                <button
+                    onClick={handleDownloadTemplate}
+                    className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50 text-sm"
+                >
+                    Download Template
+                </button>
+                <button
+                    onClick={handleImportClick}
+                    className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+                >
+                    Import from Excel
+                </button>
+                <input
+                    type="file"
+                    id="import-input"
+                    accept=".xlsx, .xls"
+                    className="hidden"
+                    onChange={handleImportFile}
+                />
             </div>
 
             <div className="flex flex-col gap-3">

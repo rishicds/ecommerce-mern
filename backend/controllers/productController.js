@@ -1,4 +1,5 @@
 import { v2 as cloudinary } from 'cloudinary';
+import xlsx from 'xlsx';
 import Product from '../models/productModel.js';
 import User from '../models/userModel.js';
 import Cart from '../models/cartModel.js';
@@ -486,6 +487,133 @@ const updateProduct = async (req, res) => {
     }
 };
 
+const downloadTemplate = async (req, res) => {
+    try {
+        const headers = [
+            ["Sr. Number", "Product Name", "Brand Name", "Flavour", "Price ( In CAD $ )", "Puff Count", "Container Capacity in ml", "Nicotine Strength", "Intense or Smooth", "Product Id", "Category"]
+        ];
+
+        const wb = xlsx.utils.book_new();
+        const ws = xlsx.utils.aoa_to_sheet(headers);
+        xlsx.utils.book_append_sheet(wb, ws, "Template");
+
+        const buffer = xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', 'attachment; filename=products_template.xlsx');
+        res.send(buffer);
+    } catch (error) {
+        console.error("Download Template Error:", error);
+        res.status(500).json({ success: false, message: "Failed to download template" });
+    }
+};
+
+const importProducts = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: "No file uploaded" });
+        }
+
+        const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const data = xlsx.utils.sheet_to_json(sheet);
+
+        if (data.length === 0) {
+            return res.status(400).json({ success: false, message: "Excel sheet is empty" });
+        }
+
+        const operations = [];
+        let successCount = 0;
+
+        for (const row of data) {
+            const productId = row['Product Id'];
+            const name = row['Product Name'];
+            const price = row['Price ( In CAD $ )'];
+
+            // Skip if mandatory fields missing
+            if (!productId || !name || price === undefined) continue;
+
+            // Extra fields for description
+            const brand = row['Brand Name'] || '';
+            const flavour = row['Flavour'] || '';
+            const puffCount = row['Puff Count'] || '';
+            const containerCapacity = row['Container Capacity in ml'] || '';
+            const nicotine = row['Nicotine Strength'] || '';
+            const intenseSmooth = row['Intense or Smooth'] || '';
+
+            // Construct description
+            let description = `Brand: ${brand}\nPuff Count: ${puffCount}\nNicotine: ${nicotine}\nType: ${intenseSmooth}`;
+            if (row['Sr. Number']) description = `Sr No: ${row['Sr. Number']}\n` + description;
+
+            // Variants
+            let variants = [];
+            if (containerCapacity) {
+                variants.push({
+                    size: String(containerCapacity),
+                    price: Number(price),
+                    quantity: 0
+                });
+            } else {
+                variants.push({
+                    size: "Default",
+                    price: Number(price),
+                    quantity: 0
+                });
+            }
+
+            // Categories
+            const categoryStr = row['Category'];
+            const categories = categoryStr ? String(categoryStr).split(',').map(c => c.trim()) : [];
+
+            operations.push({
+                updateOne: {
+                    filter: { productId: String(productId) },
+                    update: {
+                        $set: {
+                            name: String(name),
+                            price: Number(price),
+                            description: description,
+                            categories: categories,
+                            flavour: String(flavour),
+                            variants: variants,
+                            // Do not overwrite stockCount if it exists, but set on insert
+                            // However, since we can't conditionally set based on existence with one op easily without pipeline,
+                            // and requirements say "default to 0", let's leave stockCount alone if updating?
+                            // Or should we just set it?
+                            // If we use simple updateOne, fields in $set are overwritten.
+                            // If we want to preserve stockCount, we should NOT put it in $set.
+                            // We put it in $setOnInsert.
+                        },
+                        $setOnInsert: {
+                            stockCount: 0,
+                            inStock: false,
+                            images: [],
+                            showOnPOS: true,
+                            bestseller: false,
+                            sweetnessLevel: 5,
+                            mintLevel: 0,
+                            otherFlavours: []
+                        }
+                    },
+                    upsert: true
+                }
+            });
+            successCount++;
+        }
+
+        if (operations.length > 0) {
+            await Product.bulkWrite(operations);
+        }
+
+        res.json({ success: true, message: `${successCount} products processed successfully` });
+
+    } catch (error) {
+        console.error("Import Products Error:", error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 const deleteProducts = async (req, res) => {
     try {
         const { ids } = req.body;
@@ -549,4 +677,4 @@ const deleteProducts = async (req, res) => {
     }
 };
 
-export { addProduct, listProducts, removeProduct, singleProduct, updateProduct, deleteProducts };
+export { addProduct, listProducts, removeProduct, singleProduct, updateProduct, deleteProducts, downloadTemplate, importProducts };

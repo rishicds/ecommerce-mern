@@ -4,49 +4,159 @@ import Category from '../models/categoryModel.js';
 import Order from '../models/orderModel.js';
 
 // Manual Sync Products: Clover -> DB
+// Manual Sync Products: Clover -> DB
 const syncProducts = async (req, res) => {
     try {
+        // 1. Fetch all items (limit 1000 or handle paging if needed - assuming <1000 for now or service handles it?)
+        // The service currently just fetches 'items', likely default limit 100. 
+        // We should really handle pagination or fetch all. 
+        // For this immediate task, we'll assume the service returns what we need, but usually update service to loop.
+        // Let's rely on service.getProducts() returning data.
         const cloverProducts = await cloverService.getProducts();
+
+        // 2. Group items by itemGroup.id
+        const groups = {}; // groupId -> [items]
+        const standalone = [];
+
+        cloverProducts.forEach(item => {
+            if (item.itemGroup && item.itemGroup.id) {
+                if (!groups[item.itemGroup.id]) {
+                    groups[item.itemGroup.id] = [];
+                }
+                groups[item.itemGroup.id].push(item);
+            } else {
+                standalone.push(item);
+            }
+        });
+
         let syncedCount = 0;
 
-        for (const item of cloverProducts) {
-            // Check if product exists by externalCloverId or SKU (if you map SKU)
-            // Assuming item.id is the Clover ID
-            let product = await Product.findOne({ externalCloverId: item.id });
+        // 3. Process Groups
+        for (const groupId in groups) {
+            const items = groups[groupId];
+            if (items.length === 0) continue;
+
+            // Sort to ensure consistent main product info if needed
+            // Use the first item to determine common Product fields
+            const firstItem = items[0];
+
+            // Try to find existing Product by cloverItemGroupId
+            let product = await Product.findOne({ cloverItemGroupId: groupId });
+
+            // Determine Name: Use Item Group name if available (Clover might not send it in 'itemGroup' obj even with expand?)
+            // Usually expand=itemGroup gives {id: "..."}. It might not give the name.
+            // If we don't have the group name, we use the first item's name but strip variant part if possible,
+            // or just use first item's name.
+            // Let's check if firstItem.itemGroup has a name?
+            // If not, we use the common prefix or just firstItem.name.
+            // For safety, let's use firstItem.name.
+            const mainName = firstItem.name; // Ideally we'd remove specific size info
+
+            // Construct Variants
+            const variants = items.map(item => ({
+                size: item.name, // Using Clover Item Name as the variant size/name
+                price: item.price / 100,
+                quantity: item.itemStock ? item.itemStock.quantity : 0,
+                cloverItemId: item.id,
+                sku: item.sku || ""
+            }));
+
+            // Common Metadata
+            const categories = firstItem.categories && Array.isArray(firstItem.categories.elements)
+                ? firstItem.categories.elements.map(c => c.name)
+                : [];
+
+            const modifierGroups = firstItem.modifierGroups && Array.isArray(firstItem.modifierGroups.elements)
+                ? firstItem.modifierGroups.elements
+                : [];
+
+            const taxRates = firstItem.taxRates && Array.isArray(firstItem.taxRates.elements)
+                ? firstItem.taxRates.elements
+                : [];
+
+            // Calculate total stock
+            const totalStock = variants.reduce((acc, v) => acc + (v.quantity || 0), 0);
 
             if (!product) {
-                // Create new product
+                product = new Product({
+                    cloverItemGroupId: groupId,
+                    productId: groupId, // Use Group ID as unique productId
+                    name: mainName,
+                    description: firstItem.description || mainName,
+                    price: variants[0].price, // Base price
+                    variants: variants,
+                    categories: categories,
+                    stockCount: totalStock,
+                    inStock: totalStock > 0,
+                    showOnPOS: !firstItem.hidden,
+                    modifierGroups: modifierGroups,
+                    taxRates: taxRates,
+                    images: [] // Images usually not in item list
+                });
+            } else {
+                // Update
+                product.name = mainName;
+                product.variants = variants;
+                product.categories = categories;
+                product.stockCount = totalStock;
+                product.inStock = totalStock > 0;
+                product.modifierGroups = modifierGroups;
+                product.taxRates = taxRates;
+                // keep price as base price or update?
+                product.price = variants[0].price;
+            }
+
+            await product.save();
+            syncedCount++;
+        }
+
+        // 4. Process Standalone Items
+        for (const item of standalone) {
+            let product = await Product.findOne({ externalCloverId: item.id });
+            const stock = item.itemStock ? item.itemStock.quantity : 0;
+
+            const modifierGroups = item.modifierGroups && Array.isArray(item.modifierGroups.elements)
+                ? item.modifierGroups.elements
+                : [];
+
+            const taxRates = item.taxRates && Array.isArray(item.taxRates.elements)
+                ? item.taxRates.elements
+                : [];
+
+            if (!product) {
                 product = new Product({
                     externalCloverId: item.id,
+                    productId: item.id,
                     name: item.name,
-                    price: item.price / 100, // Convert cents to main currency
-                    description: item.description || item.name, // Fallback
-                    // Map other fields as needed
+                    price: item.price / 100,
+                    description: item.description || item.name,
+                    stockCount: stock,
+                    inStock: stock > 0,
                     showOnPOS: !item.hidden,
                     categories: item.categories && Array.isArray(item.categories.elements)
                         ? item.categories.elements.map(c => c.name)
                         : [],
-                    // Default values for required fields
-                    productId: item.id, // Using Clover ID as productId for now if unique
-                    stockCount: item.stockCount || 0, // Need to fetch stock separately usually
-                    images: [] // Clover items might not have images in basic response
+                    modifierGroups: modifierGroups,
+                    taxRates: taxRates,
+                    variants: [],
+                    images: []
                 });
-                await product.save();
-                syncedCount++;
             } else {
-                // Update existing product
                 product.name = item.name;
                 product.price = item.price / 100;
+                product.stockCount = stock;
                 product.showOnPOS = !item.hidden;
+                product.modifierGroups = modifierGroups;
+                product.taxRates = taxRates;
                 product.categories = item.categories && Array.isArray(item.categories.elements)
                     ? item.categories.elements.map(c => c.name)
                     : product.categories;
-                await product.save();
-                syncedCount++;
             }
+            await product.save();
+            syncedCount++;
         }
 
-        res.json({ success: true, message: `Synced ${syncedCount} products from Clover` });
+        res.json({ success: true, message: `Synced ${syncedCount} products (Merged Groups & Standalone)` });
     } catch (error) {
         console.error(error);
         res.status(500).json({ success: false, message: error.message });

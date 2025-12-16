@@ -1,8 +1,12 @@
 import express from 'express';
-import { addProduct, listProducts, removeProduct, singleProduct, updateProduct, deleteProducts } from '../controllers/productController.js';
+import { addProduct, listProducts, removeProduct, singleProduct, updateProduct, deleteProducts, downloadTemplate, importProducts } from '../controllers/productController.js';
 import upload from '../middleware/multer.js';
 import multer from 'multer';
 import { verifyAdmin } from '../middleware/authMiddleware.js';
+
+
+// Specific multer for excel import (memory storage to access buffer)
+const uploadImport = multer({ storage: multer.memoryStorage() });
 
 const productRouter = express.Router();
 
@@ -16,6 +20,10 @@ productRouter.post(
     ]),
     addProduct
 );
+
+productRouter.get('/template', verifyAdmin, downloadTemplate);
+productRouter.post('/import', verifyAdmin, uploadImport.single('file'), importProducts);
+
 productRouter.get('/list', listProducts);
 productRouter.delete('/remove/:id', verifyAdmin, removeProduct);
 productRouter.post('/delete-many', verifyAdmin, deleteProducts);

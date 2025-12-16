@@ -32,7 +32,7 @@ class CloverService {
   async getProducts() {
     if (!this.merchantId || !this.apiToken) return [];
     try {
-      const response = await fetch(`${this.baseUrl}/${this.merchantId}/items?expand=categories,tags,itemStock`, {
+      const response = await fetch(`${this.baseUrl}/${this.merchantId}/items?expand=categories,tags,itemStock,itemGroup,modifierGroups,taxRates`, {
         method: 'GET',
         headers: this.getHeaders()
       });

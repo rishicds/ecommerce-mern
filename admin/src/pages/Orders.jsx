@@ -274,7 +274,7 @@ const Orders = () => {
                         <div className="flex flex-col items-end justify-between">
                             <div className="text-right">
                                 <p className="text-sm text-gray-600">Total</p>
-                                <p className="text-3xl font-extrabold">{currency} {order.amount}</p>
+                                <p className="text-3xl font-extrabold">{currency} {Number(order.amount).toFixed(2)}</p>
                             </div>
                             {/* Cancel option removed for admin to prevent accidental cancellations */}
                         </div>

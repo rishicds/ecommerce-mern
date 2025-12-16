@@ -25,8 +25,9 @@ const initialState = {
 
 const reducer = (state, action) => {
     switch (action.type) {
-        case 'TOGGLE_CATEGORY':
-            return { ...state, category: toggleItem(state.category, action.payload) };
+        case 'SET_COLLECTION':
+            return { ...state, collection: action.payload };
+        // Legacy category toggles removed/merged
         case 'TOGGLE_SUBCATEGORY':
             return { ...state, subCategory: toggleItem(state.subCategory, action.payload) };
         case 'TOGGLE_BRAND':
@@ -140,25 +141,27 @@ function Collection() {
         dispatch({ type: 'SET_SORT_ORDER', payload: e.target.value });
     };
 
+    // Handle initial category from URL
+    useEffect(() => {
+        const cat = new URLSearchParams(location.search).get('category');
+        if (cat) {
+            dispatch({ type: 'SET_COLLECTION', payload: [cat] });
+        }
+    }, [location.search]);
+
     useEffect(() => {
         const timeout = setTimeout(() => {
             let filtered = memoizedProducts;
-            if (category.length) {
-                filtered = filtered.filter(item => category.includes(item.category));
-            }
-            if (subCategory.length) {
-                filtered = filtered.filter(item => subCategory.includes(item.subCategory));
-            }
-            // filter by brand
-            if (brand && brand.length) {
-                filtered = filtered.filter(item => brand.includes(item.brand));
-            }
             // filter by collection (category / categories)
             if (collection && collection.length) {
                 filtered = filtered.filter(item => {
                     if (!item) return false;
+                    // Check singular 'category'
                     if (item.category && collection.includes(item.category)) return true;
-                    if (Array.isArray(item.categories)) return item.categories.some(c => collection.includes(c));
+                    // Check plural 'categories'
+                    if (Array.isArray(item.categories)) {
+                        if (item.categories.some(c => collection.includes(c))) return true;
+                    }
                     return false;
                 });
             }
@@ -238,7 +241,7 @@ function Collection() {
         }, 100); // debounce delay
 
         return () => clearTimeout(timeout);
-    }, [memoizedProducts, category, subCategory, sortOrder, search, showSearch, activeQuery]);
+    }, [memoizedProducts, category, subCategory, brand, collection, flavour, flavourType, priceRange, nicotine, options, type, sortOrder, search, showSearch, activeQuery]);
 
     return (
         <div className="flex flex-col gap-1 sm:flex-row sm:gap-10 pt-10 border-t-2 border-gray-300">
@@ -280,7 +283,14 @@ function Collection() {
                             const id = `collection-${label}`;
                             return (
                                 <div key={label} className="flex gap-2 items-center">
-                                    <input id={id} type="checkbox" value={label} onChange={(e) => handleToggle('TOGGLE_COLLECTION', e.target.value)} className="w-3" />
+                                    <input
+                                        id={id}
+                                        type="checkbox"
+                                        value={label}
+                                        checked={collection.includes(label)}
+                                        onChange={(e) => handleToggle('TOGGLE_COLLECTION', e.target.value)}
+                                        className="w-3"
+                                    />
                                     <label htmlFor={id}>{label}</label>
                                 </div>
                             );

@@ -16,6 +16,7 @@ import Wishlist from "./pages/Wishlist";
 import Profile from "./pages/Profile";
 import { Routes, Route, Navigate, useLocation } from "react-router";
 import Navbar from "./components/Navbar";
+import CategoryNav from "./components/CategoryNav";
 import Footer from "./components/Footer";
 import SearchBar from "./components/SearchBar";
 import CartDrawer from './components/CartDrawer';
@@ -43,6 +44,7 @@ const App = () => {
     <div className="px-4 sm:px-[5%] md:px-[7%] lg:px-[9%]">
       <ToastContainer />
       <Navbar />
+      <CategoryNav />
       <AgeGate />
       <SearchBar />
       <CartDrawer />

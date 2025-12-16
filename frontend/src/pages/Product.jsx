@@ -143,6 +143,10 @@ function Product() {
 
     if (!productDetails) return <div>Loading...</div>;
 
+    const selectedVariant = productDetails.variants?.find(v => v.size === size);
+    const currentStock = selectedVariant ? selectedVariant.quantity : productDetails.stockCount;
+    const isOutOfStock = currentStock <= 0;
+
     return (
         <div className='border-t-2 border-gray-300 pt-10 transition-opacity ease-in duration-500 opacity-100'>
             {/* Product Main Section */}
@@ -174,8 +178,8 @@ function Product() {
 
                     {/* Stock & POS */}
                     <div className='mt-3'>
-                        {productDetails.inStock ? (
-                            <p className='text-green-600'>In stock: {productDetails.stockCount ?? '—'}</p>
+                        {!isOutOfStock ? (
+                            <p className='text-green-600'>In stock: {currentStock ?? '—'}</p>
                         ) : (
                             <p className='text-red-600'>Out of stock</p>
                         )}
@@ -220,7 +224,7 @@ function Product() {
 
                     {/* Button row: Remind + Add to cart (aligned) */}
                     <div className='mt-4 flex flex-col sm:flex-row items-center gap-4'>
-                        {Number(productDetails.stockCount) <= 0 && user ? (
+                        {isOutOfStock && user ? (
                             !waitlisted ? (
                                 <button
                                     onClick={async () => {
@@ -266,7 +270,13 @@ function Product() {
                             )
                         ) : null}
 
-                        <button onClick={() => addToCart(productDetails._id, size)} className='bg-black text-white px-6 py-2 text-sm active:bg-gray-700 h-10'>ADD TO CART</button>
+                        <button
+                            onClick={() => addToCart(productDetails._id, size)}
+                            disabled={isOutOfStock}
+                            className={`px-6 py-2 text-sm h-10 text-white ${isOutOfStock ? 'bg-gray-400 cursor-not-allowed' : 'bg-black active:bg-gray-700'}`}
+                        >
+                            {isOutOfStock ? 'OUT OF STOCK' : 'ADD TO CART'}
+                        </button>
 
                         {/* Wishlist button */}
                         <button

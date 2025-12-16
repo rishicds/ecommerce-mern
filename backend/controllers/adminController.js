@@ -5,6 +5,8 @@ import cloverService from '../services/cloverService.js';
 import Product from '../models/productModel.js';
 import Order from '../models/orderModel.js';
 import Category from '../models/categoryModel.js';
+import ModifierGroup from '../models/modifierGroupModel.js';
+import ItemGroup from '../models/itemGroupModel.js';
 
 // Upsert a single Clover item or a Group of Clover items into local Product
 // Upsert a single Clover item or a Group of Clover items into local Product
@@ -251,6 +253,62 @@ async function upsertCloverCategory(cat) {
     }
 }
 
+// Upsert modifier group from Clover
+async function upsertCloverModifierGroup(mg) {
+    if (!mg) return { action: 'error', error: 'Invalid modifier group' };
+    const cloverGroupId = mg.id;
+    const name = mg.name || 'Unnamed Group';
+
+    // Map modifiers
+    const modifiers = (mg.modifiers && mg.modifiers.elements) ? mg.modifiers.elements.map(m => ({
+        id: m.id,
+        name: m.name,
+        price: (m.price != null) ? (m.price / 100) : 0
+    })) : [];
+
+    let existing = await ModifierGroup.findOne({ cloverGroupId });
+    if (existing) {
+        existing.name = name;
+        existing.modifiers = modifiers;
+        await existing.save();
+        return { action: 'updated', id: existing._id };
+    } else {
+        const newMg = new ModifierGroup({
+            cloverGroupId,
+            name,
+            modifiers
+        });
+        await newMg.save();
+        return { action: 'created', id: newMg._id };
+    }
+}
+
+// Upsert item group from Clover
+async function upsertCloverItemGroup(ig) {
+    if (!ig) return { action: 'error', error: 'Invalid item group' };
+    const cloverGroupId = ig.id;
+    const name = ig.name || 'Unnamed Group';
+
+    // attributes
+    const attributes = (ig.attributes && ig.attributes.elements) ? ig.attributes.elements.map(a => a.name) : [];
+
+    let existing = await ItemGroup.findOne({ cloverGroupId });
+    if (existing) {
+        existing.name = name;
+        existing.attributes = attributes;
+        await existing.save();
+        return { action: 'updated', id: existing._id };
+    } else {
+        const newIg = new ItemGroup({
+            cloverGroupId,
+            name,
+            attributes
+        });
+        await newIg.save();
+        return { action: 'created', id: newIg._id };
+    }
+}
+
 // Helper to sync local product categories to Clover
 async function syncLocalCategoriesToClover(cloverItemId, localCategoryNames) {
     if (!cloverItemId) return;
@@ -344,7 +402,7 @@ const syncClover = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Clover not configured. Set CLOVER_API_TOKEN and CLOVER_MERCHANT_ID in .env' });
         }
 
-        const report = { items: { created: 0, updated: 0, errors: 0 }, orders: { created: 0, updated: 0, errors: 0 }, categories: { created: 0, updated: 0, errors: 0 } };
+        const report = { items: { created: 0, updated: 0, errors: 0 }, orders: { created: 0, updated: 0, errors: 0 }, categories: { created: 0, updated: 0, errors: 0 }, modifierGroups: { created: 0, updated: 0, errors: 0 }, itemGroups: { created: 0, updated: 0, errors: 0 } };
         const mode = (req.body && req.body.mode) || (req.query && req.query.mode) || 'both'; // 'pull' | 'push' | 'both'
         const invokedBy = (req.user && req.user.email) || 'unknown';
         console.log(`[admin] ${invokedBy} initiated Clover sync. mode=${mode}`);
@@ -368,6 +426,44 @@ const syncClover = async (req, res) => {
                 }
             } catch (e) {
                 console.error('Clover fetch categories error:', e.message || e);
+            }
+
+            // 1.5 Fetch Modifier Groups
+            try {
+                const modGroups = await cloverService.getModifierGroups();
+                if (Array.isArray(modGroups)) {
+                    for (const mg of modGroups) {
+                        try {
+                            const r = await upsertCloverModifierGroup(mg);
+                            if (r.action === 'created') report.modifierGroups.created++;
+                            else if (r.action === 'updated') report.modifierGroups.updated++;
+                        } catch (e) {
+                            console.error('ModifierGroup upsert error:', e);
+                            report.modifierGroups.errors++;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('Clover fetch modifier groups error:', e.message || e);
+            }
+
+            // 1.6 Fetch Item Groups
+            try {
+                const itemGroups = await cloverService.getItemGroups();
+                if (Array.isArray(itemGroups)) {
+                    for (const ig of itemGroups) {
+                        try {
+                            const r = await upsertCloverItemGroup(ig);
+                            if (r.action === 'created') report.itemGroups.created++;
+                            else if (r.action === 'updated') report.itemGroups.updated++;
+                        } catch (e) {
+                            console.error('ItemGroup upsert error:', e);
+                            report.itemGroups.errors++;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('Clover fetch item groups error:', e.message || e);
             }
 
             // 2. Fetch all items and Group them
@@ -446,4 +542,24 @@ const syncClover = async (req, res) => {
     }
 }
 
-export { adminLogin, getAdminData, adminLogout, syncClover };
+const getModifierGroups = async (req, res) => {
+    try {
+        const groups = await ModifierGroup.find({});
+        res.status(200).json({ success: true, modifierGroups: groups });
+    } catch (err) {
+        console.error("Error fetching modifier groups:", err);
+        res.status(500).json({ success: false, message: "Failed to fetch modifier groups" });
+    }
+};
+
+const getItemGroups = async (req, res) => {
+    try {
+        const groups = await ItemGroup.find({});
+        res.status(200).json({ success: true, itemGroups: groups });
+    } catch (err) {
+        console.error("Error fetching item groups:", err);
+        res.status(500).json({ success: false, message: "Failed to fetch item groups" });
+    }
+};
+
+export { adminLogin, getAdminData, adminLogout, syncClover, getModifierGroups, getItemGroups };

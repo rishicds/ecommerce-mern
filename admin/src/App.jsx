@@ -6,6 +6,7 @@ import Add from "./pages/Add";
 import List from "./pages/List";
 import Orders from "./pages/Orders";
 import Categories from "./pages/Categories";
+import Variants from "./pages/Variants";
 import Settings from "./pages/Settings";
 import DiscountCodes from "./pages/DiscountCodes";
 import { ToastContainer } from 'react-toastify';
@@ -42,6 +43,7 @@ const App = () => {
                       <Route path="/list" element={<List />} />
                       <Route path="/orders" element={<Orders />} />
                       <Route path="/categories" element={<Categories />} />
+                      <Route path="/variants" element={<Variants />} />
                       <Route path="/settings" element={<Settings />} />
                       <Route path="/discount-codes" element={<DiscountCodes />} />
                     </Routes>

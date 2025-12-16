@@ -12,6 +12,7 @@ const Sidebar = () => {
         { to: '/settings', icon: assets.add_icon, label: 'Settings' },
         { to: '/orders', icon: assets.order_icon, label: 'Orders' },
         { to: '/categories', icon: assets.order_icon, label: 'Categories' },
+        { to: '/variants', icon: assets.order_icon, label: 'Variants' },
         { to: '/discount-codes', icon: assets.add_icon, label: 'Discount Codes' },
     ];
 

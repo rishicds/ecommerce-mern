@@ -99,6 +99,39 @@ class CloverService {
     }
   }
 
+  async getModifierGroups() {
+    if (!this.merchantId || !this.apiToken) return [];
+    try {
+      // Get all modifier groups. Expand 'modifiers' to get the items inside.
+      const response = await fetch(`${this.baseUrl}/${this.merchantId}/modifier_groups?expand=modifiers`, {
+        method: 'GET',
+        headers: this.getHeaders()
+      });
+      if (!response.ok) throw new Error(`Clover API Error: ${response.statusText}`);
+      const data = await response.json();
+      return data.elements || [];
+    } catch (error) {
+      console.error('Error fetching modifier groups from Clover:', error);
+      throw error;
+    }
+  }
+
+  async getItemGroups() {
+    if (!this.merchantId || !this.apiToken) return [];
+    try {
+      const response = await fetch(`${this.baseUrl}/${this.merchantId}/item_groups?expand=attributes`, {
+        method: 'GET',
+        headers: this.getHeaders()
+      });
+      if (!response.ok) throw new Error(`Clover API Error: ${response.statusText}`);
+      const data = await response.json();
+      return data.elements || [];
+    } catch (error) {
+      console.error('Error fetching item groups from Clover:', error);
+      throw error;
+    }
+  }
+
   async getProductBySku(sku) {
     if (!this.merchantId || !this.apiToken) return null;
     try {

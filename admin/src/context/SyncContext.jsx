@@ -1,34 +1,77 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 
 const SyncContext = createContext();
 
 export const useSync = () => useContext(SyncContext);
 
 export const SyncProvider = ({ children }) => {
-    const [syncStatus, setSyncStatus] = useState('idle'); // idle | working | success | error
+    const [syncFromStatus, setSyncFromStatus] = useState('idle'); // idle | working | success | error
+    const [syncToStatus, setSyncToStatus] = useState('idle'); // idle | working | success | error
+    const [autoSyncEnabled, setAutoSyncEnabled] = useState(() => {
+        const saved = localStorage.getItem('autoSyncEnabled');
+        return saved !== null ? JSON.parse(saved) : false;
+    });
 
-    const runSync = useCallback(async () => {
+    useEffect(() => {
+        localStorage.setItem('autoSyncEnabled', JSON.stringify(autoSyncEnabled));
+    }, [autoSyncEnabled]);
+
+    const toggleAutoSync = useCallback(() => {
+        setAutoSyncEnabled(prev => !prev);
+    }, []);
+
+    const runSyncFrom = useCallback(async () => {
         try {
-            setSyncStatus('working');
+            setSyncFromStatus('working');
             const base = import.meta.env.VITE_BACKEND_URL || '';
             const url = `${base.replace(/\/$/, '')}/api/admin/sync/clover`;
-            const res = await fetch(url, { method: 'POST', credentials: 'include' });
+            const res = await fetch(url, { 
+                method: 'POST', 
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mode: 'pull' })
+            });
             if (!res.ok) throw new Error(`Sync failed: ${res.status}`);
             const json = await res.json();
-            console.log('Clover sync result', json);
-            setSyncStatus('success');
-            setTimeout(() => setSyncStatus('idle'), 3000);
+            console.log('Clover sync FROM result', json);
+            setSyncFromStatus('success');
+            setTimeout(() => setSyncFromStatus('idle'), 3000);
             return json;
         } catch (err) {
-            console.error('Sync error', err);
-            setSyncStatus('error');
-            setTimeout(() => setSyncStatus('idle'), 4000);
+            console.error('Sync FROM error', err);
+            setSyncFromStatus('error');
+            setTimeout(() => setSyncFromStatus('idle'), 4000);
+            throw err;
+        }
+    }, []);
+
+    const runSyncTo = useCallback(async () => {
+        try {
+            setSyncToStatus('working');
+            const base = import.meta.env.VITE_BACKEND_URL || '';
+            const url = `${base.replace(/\/$/, '')}/api/admin/sync/clover`;
+            const res = await fetch(url, { 
+                method: 'POST', 
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mode: 'push' })
+            });
+            if (!res.ok) throw new Error(`Sync failed: ${res.status}`);
+            const json = await res.json();
+            console.log('Clover sync TO result', json);
+            setSyncToStatus('success');
+            setTimeout(() => setSyncToStatus('idle'), 3000);
+            return json;
+        } catch (err) {
+            console.error('Sync TO error', err);
+            setSyncToStatus('error');
+            setTimeout(() => setSyncToStatus('idle'), 4000);
             throw err;
         }
     }, []);
 
     return (
-        <SyncContext.Provider value={{ syncStatus, runSync }}>
+        <SyncContext.Provider value={{ syncFromStatus, syncToStatus, runSyncFrom, runSyncTo, autoSyncEnabled, toggleAutoSync }}>
             {children}
         </SyncContext.Provider>
     );

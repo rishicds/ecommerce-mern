@@ -10,27 +10,34 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    const { runSync } = useSync();
+    const { runSyncFrom, runSyncTo, autoSyncEnabled } = useSync();
 
     const checkAuth = async () => {
         try {
             const res = await axios.get(`${backendUrl}/api/admin/dashboard`, { withCredentials: true });
             if (res.data.success) {
                 setUser(res.data.admin);
-                // Trigger an automatic Clover sync when admin is authenticated
-                try {
-                    if (typeof runSync === 'function') {
-                        runSync();
-                    }
-                } catch (e) {
-                    console.error('Auto sync failed', e);
-                }
             }
         } catch (err) {
             console.log(err);
             setUser(null);
         } finally {
-            setLoading(false)
+            setLoading(false);
+            // Trigger automatic Clover sync (both FROM and TO) in the background after auth check
+            if (autoSyncEnabled) {
+                (async () => {
+                    try {
+                        if (typeof runSyncFrom === 'function') {
+                            await runSyncFrom();
+                        }
+                        if (typeof runSyncTo === 'function') {
+                            await runSyncTo();
+                        }
+                    } catch (e) {
+                        console.error('Auto sync failed', e);
+                    }
+                })();
+            }
         }
     };
 

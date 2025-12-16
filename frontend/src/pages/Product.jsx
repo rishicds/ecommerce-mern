@@ -163,7 +163,7 @@ function Product() {
                     <h1 className='font-medium text-2xl mt-2'>{productDetails.name}</h1>
                     {/* Star rating removed per request */}
                     <p className='mt-5 text-3xl font-medium'>{currency}{productDetails.price}</p>
-                    <p className='mt-2 text-sm text-gray-600'>Flavour: {productDetails.flavour || '—'}</p>
+                    {productDetails.flavour && <p className='mt-2 text-sm text-gray-600'>Flavour: {productDetails.flavour}</p>}
 
                     {/* Stock & POS */}
                     <div className='mt-3'>

@@ -299,12 +299,6 @@ function Product() {
                             {productDetails.description || 'No description available.'}
                         </p>
                     </div>
-
-                    {/* What's Included Section */}
-                    <div>
-                        <h3 className='font-bold text-base text-black mb-2'>What's Included?</h3>
-                        <p className='text-gray-700'>1 x {productDetails.name}</p>
-                    </div>
                     
                     {/* Sweetness Level */}
                     {productDetails.sweetnessLevel !== undefined && (

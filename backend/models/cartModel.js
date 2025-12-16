@@ -6,7 +6,7 @@ const cartItemSchema = new mongoose.Schema({
     variantSize: { type: String, required: true }, // e.g., "10ml", "20ml"
     quantity: { type: Number, required: true, min: 1 },
     price: { type: Number, required: true },
-    image: { type: String, required: true }
+    image: { type: String, required: false }
 });
 
 const cartSchema = new mongoose.Schema({

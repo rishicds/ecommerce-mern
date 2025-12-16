@@ -20,7 +20,7 @@ class CloverService {
 
   getHeaders() {
     return {
-      'Authorization': `Bearer ${this.apiToken} `,
+      'Authorization': `Bearer ${this.apiToken}`,
       'Content-Type': 'application/json'
     };
   }
@@ -32,11 +32,11 @@ class CloverService {
   async getProducts() {
     if (!this.merchantId || !this.apiToken) return [];
     try {
-      const response = await fetch(`${this.baseUrl} /${this.merchantId}/items ? expand = categories, tags`, {
+      const response = await fetch(`${this.baseUrl}/${this.merchantId}/items?expand=categories,tags,itemStock`, {
         method: 'GET',
         headers: this.getHeaders()
       });
-      if (!response.ok) throw new Error(`Clover API Error: ${response.statusText} `);
+      if (!response.ok) throw new Error(`Clover API Error: ${response.statusText}`);
       const data = await response.json();
       return data.elements || [];
     } catch (error) {
@@ -48,11 +48,11 @@ class CloverService {
   async getCategories() {
     if (!this.merchantId || !this.apiToken) return [];
     try {
-      const response = await fetch(`${this.baseUrl} /${this.merchantId}/categories`, {
+      const response = await fetch(`${this.baseUrl}/${this.merchantId}/categories`, {
         method: 'GET',
         headers: this.getHeaders()
       });
-      if (!response.ok) throw new Error(`Clover API Error: ${response.statusText} `);
+      if (!response.ok) throw new Error(`Clover API Error: ${response.statusText}`);
       const data = await response.json();
       return data.elements || [];
     } catch (error) {
@@ -64,11 +64,11 @@ class CloverService {
   async getOrders() {
     if (!this.merchantId || !this.apiToken) return [];
     try {
-      const response = await fetch(`${this.baseUrl} /${this.merchantId}/orders ? expand = lineItems, customers, payments`, {
+      const response = await fetch(`${this.baseUrl}/${this.merchantId}/orders?expand=lineItems,customers,payments`, {
         method: 'GET',
         headers: this.getHeaders()
       });
-      if (!response.ok) throw new Error(`Clover API Error: ${response.statusText} `);
+      if (!response.ok) throw new Error(`Clover API Error: ${response.statusText}`);
       const data = await response.json();
       return data.elements || [];
     } catch (error) {
@@ -81,11 +81,11 @@ class CloverService {
     if (!this.merchantId || !this.apiToken) return null;
     try {
       // Clover API filtering syntax: filter=sku={sku}
-      const response = await fetch(`${this.baseUrl} /${this.merchantId}/items ? filter = sku = ${sku} `, {
+      const response = await fetch(`${this.baseUrl}/${this.merchantId}/items?filter=sku=${sku}`, {
         method: 'GET',
         headers: this.getHeaders()
       });
-      if (!response.ok) throw new Error(`Clover API Error: ${response.statusText} `);
+      if (!response.ok) throw new Error(`Clover API Error: ${response.statusText}`);
       const data = await response.json();
       // Return the first match if any
       return (data.elements && data.elements.length > 0) ? data.elements[0] : null;
@@ -122,15 +122,15 @@ class CloverService {
 
       const cloverOrderPayload = {
         currency: 'USD',
-        title: `Order #${orderData._id} `,
-        note: `Placed via Web.Payment: ${orderData.paymentMethod} `,
+        title: `Order #${orderData._id}`,
+        note: `Placed via Web.Payment: ${orderData.paymentMethod}`,
         lineItems: lineItems,
         state: orderData.payment ? 'LOCKED' : 'OPEN', // LOCKED if paid
         manualTransaction: true, // Indicate this was external
         total: Math.round(orderData.amount * 100)
       };
 
-      const response = await fetch(`${this.baseUrl} /${this.merchantId}/orders`, {
+      const response = await fetch(`${this.baseUrl}/${this.merchantId}/orders`, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify(cloverOrderPayload)
@@ -139,8 +139,8 @@ class CloverService {
       if (!response.ok) {
         // If 400, log body
         const errText = await response.text();
-        console.error(`Clover createOrder failed: ${response.status} ${errText} `);
-        throw new Error(`Clover API Error: ${response.statusText} `);
+        console.error(`Clover createOrder failed: ${response.status} ${errText}`);
+        throw new Error(`Clover API Error: ${response.statusText}`);
       }
       return await response.json();
     } catch (error) {
@@ -152,7 +152,7 @@ class CloverService {
   async createProductInClover(productData) {
     if (!this.merchantId || !this.apiToken) return null;
     try {
-      const response = await fetch(`${this.baseUrl} /${this.merchantId}/items`, {
+      const response = await fetch(`${this.baseUrl}/${this.merchantId}/items`, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({
@@ -162,7 +162,7 @@ class CloverService {
           hidden: !productData.showOnPOS
         })
       });
-      if (!response.ok) throw new Error(`Clover API Error: ${response.statusText} `);
+      if (!response.ok) throw new Error(`Clover API Error: ${response.statusText}`);
       return await response.json();
     } catch (error) {
       console.error('Error creating product in Clover:', error);
@@ -203,11 +203,11 @@ class CloverService {
   async deleteProductInClover(cloverId) {
     if (!this.merchantId || !this.apiToken) return null;
     try {
-      const response = await fetch(`${this.baseUrl} /${this.merchantId}/items / ${cloverId} `, {
+      const response = await fetch(`${this.baseUrl}/${this.merchantId}/items/${cloverId}`, {
         method: 'DELETE',
         headers: this.getHeaders()
       });
-      if (!response.ok) throw new Error(`Clover API Error: ${response.statusText} `);
+      if (!response.ok) throw new Error(`Clover API Error: ${response.statusText}`);
       return await response.json();
     } catch (error) {
       console.error('Error deleting product in Clover:', error);
@@ -219,15 +219,15 @@ class CloverService {
     if (!this.merchantId || !this.apiToken) return null;
     try {
       // First check if stock item exists
-      const stockResponse = await fetch(`${this.baseUrl} /${this.merchantId}/item_stocks / ${cloverItemId} `, {
+      const stockResponse = await fetch(`${this.baseUrl}/${this.merchantId}/item_stocks/${cloverItemId}`, {
         headers: this.getHeaders()
       });
 
       if (!stockResponse.ok) {
-        return null;
+        return null; // or create it?
       }
 
-      const response = await fetch(`${this.baseUrl} /${this.merchantId}/item_stocks / ${cloverItemId} `, {
+      const response = await fetch(`${this.baseUrl}/${this.merchantId}/item_stocks/${cloverItemId}`, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({
@@ -252,10 +252,10 @@ class CloverService {
         ? 'https://scl.clover.com'
         : 'https://scl-sandbox.dev.clover.com';
 
-      const response = await fetch(`${chargeBaseUrl} /v1/charges`, {
+      const response = await fetch(`${chargeBaseUrl}/v1/charges`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${this.apiToken} `,
+          'Authorization': `Bearer ${this.apiToken}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -266,8 +266,8 @@ class CloverService {
       });
 
       if (!response.ok) {
-        console.error(`Clover Charge Error: ${response.statusText} `);
-        throw new Error(`Clover Charge Failed: ${response.statusText} `);
+        console.error(`Clover Charge Error: ${response.statusText}`);
+        throw new Error(`Clover Charge Failed: ${response.statusText}`);
       }
       return await response.json();
     } catch (error) {
@@ -275,6 +275,7 @@ class CloverService {
       throw error;
     }
   }
+
   async createCheckoutSession(orderData, returnUrl, cancelUrl) {
     if (!this.merchantId || !this.apiToken) return null;
     try {
@@ -311,12 +312,12 @@ class CloverService {
         ? 'https://api.clover.com'
         : 'https://apisandbox.dev.clover.com';
 
-      const url = `${checkoutBaseUrl} /invoicingcheckoutservice/v1 / checkouts`;
+      const url = `${checkoutBaseUrl}/invoicingcheckoutservice/v1/checkouts`;
 
       const response = await fetch(url, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${this.apiToken} `,
+          'Authorization': `Bearer ${this.apiToken}`,
           'Content-Type': 'application/json',
           'X-Clover-Merchant-Id': this.merchantId // Sometimes required for global services
         },
@@ -325,8 +326,8 @@ class CloverService {
 
       if (!response.ok) {
         const errText = await response.text();
-        console.error(`Clover createCheckoutSession failed: ${response.status} ${errText} `);
-        throw new Error(`Clover Checkout Error: ${response.statusText} `);
+        console.error(`Clover createCheckoutSession failed: ${response.status} ${errText}`);
+        throw new Error(`Clover Checkout Error: ${response.statusText}`);
       }
 
       return await response.json();
@@ -335,14 +336,15 @@ class CloverService {
       throw error;
     }
   }
+
   async getItem(itemId) {
     if (!this.merchantId || !this.apiToken) return null;
     try {
-      const response = await fetch(`${this.baseUrl} /${this.merchantId}/items / ${itemId}?expand = categories`, {
+      const response = await fetch(`${this.baseUrl}/${this.merchantId}/items/${itemId}?expand=categories`, {
         method: 'GET',
         headers: this.getHeaders()
       });
-      if (!response.ok) throw new Error(`Clover API Error: ${response.statusText} `);
+      if (!response.ok) throw new Error(`Clover API Error: ${response.statusText}`);
       return await response.json();
     } catch (error) {
       console.error(`Error fetching item ${itemId} from Clover: `, error);
@@ -353,7 +355,7 @@ class CloverService {
   async addItemToCategory(itemId, categoryId) {
     if (!this.merchantId || !this.apiToken) return null;
     try {
-      const response = await fetch(`${this.baseUrl} /${this.merchantId}/category_items`, {
+      const response = await fetch(`${this.baseUrl}/${this.merchantId}/category_items`, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({
@@ -361,7 +363,7 @@ class CloverService {
           item: { id: itemId }
         })
       });
-      if (!response.ok) throw new Error(`Clover API Error: ${response.statusText} `);
+      if (!response.ok) throw new Error(`Clover API Error: ${response.statusText}`);
       return await response.json();
     } catch (error) {
       console.error(`Error adding item ${itemId} to category ${categoryId}: `, error);
@@ -372,15 +374,53 @@ class CloverService {
   async removeItemFromCategory(itemId, categoryId) {
     if (!this.merchantId || !this.apiToken) return null;
     try {
-      const response = await fetch(`${this.baseUrl} /${this.merchantId}/categories / ${categoryId} /items/${itemId} `, {
+      const response = await fetch(`${this.baseUrl}/${this.merchantId}/categories/${categoryId}/items/${itemId}`, {
         method: 'DELETE',
         headers: this.getHeaders()
       });
-      if (!response.ok) throw new Error(`Clover API Error: ${response.statusText} `);
+      if (!response.ok) throw new Error(`Clover API Error: ${response.statusText}`);
       return await response.json();
     } catch (error) {
       console.error(`Error removing item ${itemId} from category ${categoryId}: `, error);
       throw error;
+    }
+  }
+
+  async getTaxRates() {
+    if (!this.merchantId || !this.apiToken) return [];
+    try {
+      const response = await fetch(`${this.baseUrl}/${this.merchantId}/tax_rates`, {
+        method: 'GET',
+        headers: this.getHeaders()
+      });
+      if (!response.ok) throw new Error(`Clover API Error: ${response.statusText}`);
+      const data = await response.json();
+      console.log('Raw Tax Rates from Clover:', JSON.stringify(data, null, 2));
+      return data.elements || [];
+    } catch (error) {
+      console.error('Error fetching tax rates from Clover:', error);
+      // Return empty array instead of throwing to prevent breaking the flow
+      return [];
+    }
+  }
+
+  async getDefaultServiceCharge() {
+    if (!this.merchantId || !this.apiToken) return null;
+    try {
+      // NOTE: Using /default_service_charge as per investigation
+      const response = await fetch(`${this.baseUrl}/${this.merchantId}/default_service_charge`, {
+        method: 'GET',
+        headers: this.getHeaders()
+      });
+
+      if (response.status === 404) return null;
+      if (!response.ok) {
+        return null;
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching default service charge from Clover:', error);
+      return null;
     }
   }
 }

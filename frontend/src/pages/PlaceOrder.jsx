@@ -12,9 +12,10 @@ function PlaceOrder() {
     const [paymentMethod, setPaymentMethod] = useState('cod');
     const [loading, setLoading] = useState(false);
     const {
+        // Context data
         products,
         currency,
-        deliveryFee,
+        deliveryFee: defaultDeliveryFee, // Rename context delivery fee to avoid conflict or use as fallback
         cartItems,
         cartDetails,
         getCartAmount,
@@ -36,6 +37,34 @@ function PlaceOrder() {
         country: "",
         phone: ""
     });
+
+    const [cloverSettings, setCloverSettings] = useState({ taxRate: 0, deliveryFee: 0 });
+    const [deliveryFee, setDeliveryFee] = useState(0);
+
+    // Fetch Clover Settings
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const res = await axios.get(`${backendUrl}/api/clover/checkout-settings`);
+                if (res.data.success) {
+                    setCloverSettings({
+                        taxRate: res.data.taxRate || 0,
+                        deliveryFee: res.data.deliveryFee || 0
+                    });
+                    // If Clover has a delivery fee, use it, otherwise fallback to context or 0
+                    if (res.data.deliveryFee > 0) {
+                        setDeliveryFee(res.data.deliveryFee);
+                    } else {
+                        setDeliveryFee(defaultDeliveryFee || 0);
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to fetch checkout settings", error);
+                setDeliveryFee(defaultDeliveryFee || 0);
+            }
+        };
+        fetchSettings();
+    }, [backendUrl, defaultDeliveryFee]);
 
     // Auto-fill form with user profile data
     useEffect(() => {
@@ -96,10 +125,11 @@ function PlaceOrder() {
             }
 
             // Calculate final amount considering discount and taxes
+            // Use fetched tax rate
             const subtotal = getCartAmount();
             const discountAmount = discount?.totalDiscount || 0;
             const afterDiscount = Math.max(0, subtotal - discountAmount);
-            const taxes = afterDiscount * 0.06; // 6% estimated taxes
+            const taxes = afterDiscount * cloverSettings.taxRate;
             const finalAmount = afterDiscount + deliveryFee + taxes;
 
             const orderPayload = {
@@ -188,18 +218,18 @@ function PlaceOrder() {
                     <input required name='zipcode' value={formData.zipcode} onChange={onChangeHandler} className='border border-gray-300 rounded py-1.5 px-3.5 w-full' placeholder='Zipcode' type="number" />
                     <input required name='country' value={formData.country} onChange={onChangeHandler} className='border border-gray-300 rounded py-1.5 px-3.5 w-full' placeholder='Country' type="text" />
                 </div>
-                <input 
-                    required 
-                    name='phone' 
-                    value={formData.phone} 
+                <input
+                    required
+                    name='phone'
+                    value={formData.phone}
                     onChange={(e) => {
                         const value = e.target.value.replace(/\D/g, '').slice(0, 10);
                         setFormData(prev => ({ ...prev, phone: value }));
                     }}
                     maxLength={10}
-                    className='border border-gray-300 rounded py-1.5 px-3.5 w-full' 
-                    placeholder='Phone number (10 digits)' 
-                    type="tel" 
+                    className='border border-gray-300 rounded py-1.5 px-3.5 w-full'
+                    placeholder='Phone number (10 digits)'
+                    type="tel"
                 />
             </div>
 
@@ -237,46 +267,46 @@ function PlaceOrder() {
                         </div>
 
                         <div className='mt-4'>
-                                {/* Totals with discount (if applied) */}
-                                {(() => {
-                                    const subtotal = getCartAmount();
-                                    const discountAmount = discount?.totalDiscount || 0;
-                                    const afterDiscount = Math.max(0, subtotal - discountAmount);
-                                    const taxes = afterDiscount * 0.06; // 6% estimated taxes
-                                    const totalAmount = afterDiscount + deliveryFee + taxes;
+                            {/* Totals with discount (if applied) */}
+                            {(() => {
+                                const subtotal = getCartAmount();
+                                const discountAmount = discount?.totalDiscount || 0;
+                                const afterDiscount = Math.max(0, subtotal - discountAmount);
+                                const taxes = afterDiscount * cloverSettings.taxRate;
+                                const totalAmount = afterDiscount + deliveryFee + taxes;
 
-                                    return (
-                                        <>
-                                            <div className='flex justify-between text-sm'>
-                                                <div>Subtotal</div>
-                                                <div>{currency}{subtotal.toFixed(2)}</div>
+                                return (
+                                    <>
+                                        <div className='flex justify-between text-sm'>
+                                            <div>Subtotal</div>
+                                            <div>{currency}{subtotal.toFixed(2)}</div>
+                                        </div>
+
+                                        {discountAmount > 0 && (
+                                            <div className='flex justify-between text-sm mt-2 text-green-600'>
+                                                <div>Discount</div>
+                                                <div>-{currency}{discountAmount.toFixed(2)}</div>
                                             </div>
+                                        )}
 
-                                            {discountAmount > 0 && (
-                                                <div className='flex justify-between text-sm mt-2 text-green-600'>
-                                                    <div>Discount</div>
-                                                    <div>-{currency}{discountAmount.toFixed(2)}</div>
-                                                </div>
-                                            )}
+                                        <div className='flex justify-between text-sm mt-2'>
+                                            <div>Shipping</div>
+                                            <div>{currency}{deliveryFee.toFixed(2)}</div>
+                                        </div>
 
-                                            <div className='flex justify-between text-sm mt-2'>
-                                                <div>Shipping</div>
-                                                <div>{currency}{deliveryFee.toFixed(2)}</div>
-                                            </div>
+                                        <div className='flex justify-between text-sm mt-2'>
+                                            <div>Estimated taxes</div>
+                                            <div>{currency}{taxes.toFixed(2)}</div>
+                                        </div>
 
-                                            <div className='flex justify-between text-sm mt-2'>
-                                                <div>Estimated taxes</div>
-                                                <div>{currency}{taxes.toFixed(2)}</div>
-                                            </div>
-
-                                            <hr className='my-3' />
-                                            <div className='flex justify-between text-base font-semibold'>
-                                                <div>Total</div>
-                                                <div>{currency}{totalAmount.toFixed(2)}</div>
-                                            </div>
-                                        </>
-                                    );
-                                })()}
+                                        <hr className='my-3' />
+                                        <div className='flex justify-between text-base font-semibold'>
+                                            <div>Total</div>
+                                            <div>{currency}{totalAmount.toFixed(2)}</div>
+                                        </div>
+                                    </>
+                                );
+                            })()}
                         </div>
 
                         <div className='mt-4'>

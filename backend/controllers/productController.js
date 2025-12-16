@@ -101,6 +101,8 @@ const addProduct = async (req, res) => {
         await product.save();
 
         // Best-effort: create item in Clover to keep POS in sync
+        /* 
+        // Auto-sync disabled per user request
         try {
             if (cloverService.isConfigured()) {
                 const created = await cloverService.createProductInClover(product);
@@ -117,6 +119,7 @@ const addProduct = async (req, res) => {
         } catch (clErr) {
             console.error('Failed to push new product to Clover:', clErr.message || clErr);
         }
+        */
 
         // Emit product created so clients can update lists in realtime
         try {
@@ -236,6 +239,8 @@ const removeProduct = async (req, res) => {
         } catch (e) { console.error('Failed to emit productRemoved:', e); }
 
         // Best-effort: remove from Clover by externalCloverId or SKU/productId if configured
+        /*
+        // Auto-sync disabled per user request
         try {
             if (cloverService.isConfigured()) {
                 const clId = product.externalCloverId || product.productId || undefined;
@@ -244,6 +249,7 @@ const removeProduct = async (req, res) => {
         } catch (err) {
             console.error('Failed to delete product from Clover:', err.message || err);
         }
+        */
 
         res.status(200).json({ success: true, message: "Product removed successfully" });
 
@@ -428,6 +434,8 @@ const updateProduct = async (req, res) => {
 
         // Emit product update via Socket.IO so clients can refresh UI live
         // Best-effort: update item on Clover
+        /*
+        // Auto-sync disabled per user request
         try {
             if (cloverService.isConfigured()) {
                 const clId = product.externalCloverId || product.productId || product._id.toString();
@@ -442,6 +450,7 @@ const updateProduct = async (req, res) => {
         } catch (clErr) {
             console.error('Failed to update product on Clover:', clErr.message || clErr);
         }
+        */
         try {
             const io = getIO();
             if (io) {
@@ -507,6 +516,8 @@ const deleteProducts = async (req, res) => {
             }
 
             // Best-effort: remove from Clover
+            /*
+            // Auto-sync disabled per user request
             try {
                 if (cloverService.isConfigured()) {
                     const clId = product.externalCloverId || product.productId || undefined;
@@ -515,6 +526,7 @@ const deleteProducts = async (req, res) => {
             } catch (err) {
                 console.error('Failed to delete product from Clover:', err.message || err);
             }
+            */
         }
 
         await Product.deleteMany({ _id: { $in: ids } });

@@ -31,8 +31,12 @@ async function upsertCloverItem(item) {
         price: Number(price || 0),
         categories,
         images: (item.images && Array.isArray(item.images) && item.images.length) ? item.images.map(i => ({ url: i.url || i })) : (existing ? existing.images : []),
-        stockCount: (item.quantity != null) ? Number(item.quantity) : (existing ? existing.stockCount : 0),
-        inStock: (item.quantity != null) ? (Number(item.quantity) > 0) : (existing ? existing.inStock : true),
+        stockCount: (item.itemStock && item.itemStock.quantity != null)
+            ? Number(item.itemStock.quantity)
+            : ((item.quantity != null) ? Number(item.quantity) : (existing ? existing.stockCount : 0)),
+        inStock: (item.itemStock && item.itemStock.quantity != null)
+            ? (Number(item.itemStock.quantity) > 0)
+            : ((item.quantity != null) ? (Number(item.quantity) > 0) : (existing ? existing.inStock : true)),
         showOnPOS: true
     };
 

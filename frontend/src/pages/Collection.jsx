@@ -20,7 +20,8 @@ const initialState = {
     showFilter: false,
     filterProducts: [],
     sortOrder: 'relevant',
-    currentPage: 1, // Add current page state
+    currentPage: 1,
+    itemsPerPage: 20, // Add itemsPerPage state
 };
 
 const reducer = (state, action) => {
@@ -54,6 +55,8 @@ const reducer = (state, action) => {
             return { ...state, sortOrder: action.payload };
         case 'SET_CURRENT_PAGE':
             return { ...state, currentPage: action.payload };
+        case 'SET_ITEMS_PER_PAGE':
+            return { ...state, itemsPerPage: Number(action.payload), currentPage: 1 }; // Reset to page 1
         default:
             return state;
     }
@@ -74,13 +77,45 @@ const sortProducts = (productsToSort, sortOrder) => {
     }
 };
 
+// Helper to flatten products into variants
+const flattenProducts = (products) => {
+    const flattened = [];
+    products.forEach(product => {
+        if (product.variants && product.variants.length > 0) {
+            product.variants.forEach(variant => {
+                // Ensure unique key for React
+                const uniqueId = `${product._id}-${variant.size || variant.sku || Math.random()}`;
+                flattened.push({
+                    ...product,
+                    _id: product._id, // Keep original product ID for linking
+                    originalId: product._id,
+                    uniqueId: uniqueId,
+                    name: `${product.name} - ${variant.size || variant.flavour || ''}`.replace(/ - $/, ''), // Append variant info
+                    price: variant.price || product.price,
+                    image: variant.image ? [{ url: variant.image }] : (product.images || product.image),
+                    // Add specific variant data if needed for filtering
+                    variantSize: variant.size,
+                    variantFlavour: variant.flavour
+                });
+            });
+        } else {
+            // No variants, just push the product itself
+            flattened.push({
+                ...product,
+                uniqueId: product._id,
+                image: product.images || product.image
+            });
+        }
+    });
+    return flattened;
+};
+
 // ---------- Main Component ----------
 function Collection() {
     const { products, search, showSearch } = useShop();
     const [state, dispatch] = useReducer(reducer, initialState);
-    const { category, subCategory, brand, collection, flavour, flavourType, priceRange, nicotine, options, type, showFilter, filterProducts, sortOrder, currentPage } = state;
+    const { category, subCategory, brand, collection, flavour, flavourType, priceRange, nicotine, options, type, showFilter, filterProducts, sortOrder, currentPage, itemsPerPage } = state;
     const location = useLocation();
-    const itemsPerPage = 20; // Define items per page
 
     const qParam = useMemo(() => {
         try {
@@ -100,7 +135,7 @@ function Collection() {
 
     const memoizedProducts = useMemo(() => products, [products]);
 
-    // Derive available filter options from product list
+    // Derive available filter options from product list (use original products for filters to capture all potential values)
     const brands = useMemo(() => {
         const set = new Set();
         memoizedProducts.forEach(p => { if (p.brand) set.add(p.brand); });
@@ -141,6 +176,10 @@ function Collection() {
         dispatch({ type: 'SET_SORT_ORDER', payload: e.target.value });
     };
 
+    const handleItemsPerPageChange = (e) => {
+        dispatch({ type: 'SET_ITEMS_PER_PAGE', payload: e.target.value });
+    };
+
     // Handle initial category from URL
     useEffect(() => {
         const cat = new URLSearchParams(location.search).get('category');
@@ -151,7 +190,9 @@ function Collection() {
 
     useEffect(() => {
         const timeout = setTimeout(() => {
-            let filtered = memoizedProducts;
+            // Flatten products first
+            let filtered = flattenProducts(memoizedProducts);
+
             // filter by collection (category / categories)
             if (collection && collection.length) {
                 filtered = filtered.filter(item => {
@@ -167,13 +208,18 @@ function Collection() {
             }
             // filter by flavour
             if (flavour && flavour.length) {
-                filtered = filtered.filter(item => item.flavour && flavour.includes(item.flavour));
+                // Check both product flavour and variant flavour if available
+                filtered = filtered.filter(item => {
+                    if (item.flavour && flavour.includes(item.flavour)) return true;
+                    if (item.variantFlavour && flavour.includes(item.variantFlavour)) return true; // Check variant specific flavour
+                    return false;
+                });
             }
             // filter by flavourType (best-effort: check `flavour` or `description`)
             if (flavourType && flavourType.length) {
                 const ftLower = flavourType.map(f => f.toLowerCase());
                 filtered = filtered.filter(item => {
-                    const txt = `${item.flavour || ''} ${item.description || ''}`.toLowerCase();
+                    const txt = `${item.flavour || ''} ${item.description || ''} ${item.variantFlavour || ''}`.toLowerCase();
                     return ftLower.some(f => txt.includes(f));
                 });
             }
@@ -213,23 +259,13 @@ function Collection() {
                 const matchesQuery = (item) => {
                     if (!item) return false;
                     const fields = [];
+                    // Note: 'item' here is already flattened, so we check its name (which includes variant info)
+                    // We also check the base properties
                     if (item.name) fields.push(String(item.name));
                     if (item.brand) fields.push(String(item.brand));
                     if (item.category) fields.push(String(item.category));
                     if (item.subCategory) fields.push(String(item.subCategory));
                     if (item.description) fields.push(String(item.description));
-                    // variants may be array of strings or objects
-                    if (Array.isArray(item.variants)) {
-                        item.variants.forEach(v => {
-                            if (!v) return;
-                            if (typeof v === 'string') fields.push(v);
-                            else if (typeof v === 'object') {
-                                if (v.size) fields.push(String(v.size));
-                                if (v.label) fields.push(String(v.label));
-                                if (v.name) fields.push(String(v.name));
-                            }
-                        });
-                    }
 
                     return fields.some(f => String(f).toLowerCase().includes(qLower));
                 };
@@ -397,19 +433,35 @@ function Collection() {
 
             {/* Right: Product List */}
             <div className="flex-1">
-                <div className="flex justify-between text-base sm:text-2xl mb-4">
+                <div className="flex flex-col sm:flex-row justify-between text-base sm:text-2xl mb-4 gap-4 sm:gap-0">
                     <Title text1="ALL" text2="COLLECTIONS" />
 
-                    {/* Sort Dropdown */}
-                    <select
-                        onChange={handleSortChange}
-                        className="border-2 border-gray-300 text-sm px-2"
-                        value={sortOrder}
-                    >
-                        <option value="relevant">Sort by: Relevant</option>
-                        <option value="high-low">Sort by: High to Low</option>
-                        <option value="low-high">Sort by: Low to High</option>
-                    </select>
+                    <div className="flex items-center gap-4">
+                        {/* Items Per Page Dropdown */}
+                        <div className="flex items-center gap-2 text-sm">
+                            <span className="text-gray-700">Show:</span>
+                            <select
+                                onChange={handleItemsPerPageChange}
+                                className="border-2 border-gray-300 px-2 py-1 bg-white outline-none"
+                                value={itemsPerPage}
+                            >
+                                <option value="20">20</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                            </select>
+                        </div>
+
+                        {/* Sort Dropdown */}
+                        <select
+                            onChange={handleSortChange}
+                            className="border-2 border-gray-300 text-sm px-2 py-1 outline-none"
+                            value={sortOrder}
+                        >
+                            <option value="relevant">Sort by: Relevant</option>
+                            <option value="high-low">Sort by: High to Low</option>
+                            <option value="low-high">Sort by: Low to High</option>
+                        </select>
+                    </div>
                 </div>
 
                 {/* Product Grid or Fallback Message */}
@@ -418,7 +470,7 @@ function Collection() {
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 gap-y-6">
                             {filterProducts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(item => (
                                 <ProductItem
-                                    key={item._id}
+                                    key={item.uniqueId}
                                     id={item._id}
                                     images={item.images || item.image}
                                     name={item.name}

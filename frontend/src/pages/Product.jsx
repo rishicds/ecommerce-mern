@@ -173,8 +173,8 @@ function Product() {
                 <div className='flex-1'>
                     <h1 className='font-medium text-2xl mt-2'>{productDetails.name}</h1>
                     {/* Star rating removed per request */}
-                    <p className='mt-5 text-3xl font-medium'>{currency}{productDetails.price}</p>
-                    {productDetails.flavour && <p className='mt-2 text-sm text-gray-600'>Flavour: {productDetails.flavour}</p>}
+                    <p className='mt-5 text-3xl font-medium'>{currency}{selectedVariant ? selectedVariant.price : productDetails.price}</p>
+                    {(selectedVariant?.flavour || productDetails.flavour) && <p className='mt-2 text-sm text-gray-600'>Flavour: {selectedVariant?.flavour || productDetails.flavour}</p>}
 
                     {/* Stock & POS */}
                     <div className='mt-3'>
@@ -190,34 +190,36 @@ function Product() {
                     {/* Size Selection - only show when variants exist */}
                     {productDetails.variants && productDetails.variants.length > 0 && (
                         <div className='flex flex-col gap-4 my-8'>
-                            <p>Select Variant</p>
-                            <div className='flex gap-2 flex-wrap'>
-                                {productDetails.variants.map((variant, index) => (
-                                    <button
-                                        key={index}
-                                        onClick={() => {
-                                            setSize(variant.size);
-                                            // If variant has a specific image, switch to it
-                                            if (variant.image) {
-                                                // Find the image object in product images if possible to match object reference or create new
-                                                // We can just use the url if the main image is using one
-                                                // The main image uses selectedImage.url.
-                                                // Construct a minimal object or find it
-                                                const match = (productDetails.images || []).find(img => img.url === variant.image);
-                                                setSelectedImage(match || { url: variant.image });
-                                            }
-                                        }}
-                                        className={`border py-2 px-4 bg-gray-100 cursor-pointer ${variant.size === size ? 'border-orange-500 ring-1 ring-orange-500' : 'border-gray-300 hover:border-gray-400'}`}
-                                    >
-                                        <div className="flex flex-col items-center gap-1">
+                            <p className="font-semibold">Select Flavour / Variant</p>
+                            <div className='flex gap-3 flex-wrap'>
+                                {productDetails.variants.map((variant, index) => {
+                                    const isSelected = variant.size === size;
+                                    const variantLabel = variant.flavour ? `${variant.flavour} (${variant.size})` : variant.size;
+                                    return (
+                                        <button
+                                            key={index}
+                                            onClick={() => {
+                                                setSize(variant.size);
+                                                // If variant has a specific image, switch to it
+                                                if (variant.image) {
+                                                    setSelectedImage({ url: variant.image, _id: `var-${index}` });
+                                                }
+                                            }}
+                                            className={`relative border rounded-lg p-2 min-w-[80px] flex flex-col items-center gap-2 cursor-pointer transition-all ${isSelected ? 'border-orange-500 bg-orange-50 ring-1 ring-orange-500' : 'border-gray-200 hover:border-gray-300'}`}
+                                        >
                                             {variant.image && (
-                                                <img src={variant.image} alt={variant.size} className="w-8 h-8 object-cover rounded-sm mb-1" />
+                                                <div className="w-12 h-12 rounded overflow-hidden bg-gray-100">
+                                                    <img src={variant.image} alt={variantLabel} className="w-full h-full object-cover" />
+                                                </div>
                                             )}
-                                            <span>{variant.size}</span>
-                                            <span className="text-xs text-gray-500">{currency}{variant.price}</span>
-                                        </div>
-                                    </button>
-                                ))}
+                                            <div className="text-center">
+                                                <span className={`block text-sm font-medium ${isSelected ? 'text-orange-700' : 'text-gray-700'}`}>{variant.flavour || variant.size}</span>
+                                                {variant.flavour && variant.size && <span className="block text-xs text-gray-500">{variant.size}</span>}
+                                                <span className="block text-xs font-semibold mt-1">{currency}{variant.price}</span>
+                                            </div>
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </div>
                     )}

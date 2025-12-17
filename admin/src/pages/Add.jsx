@@ -19,7 +19,7 @@ const Add = () => {
     const [categoriesList, setCategoriesList] = useState(CATEGORIES);
     const [selectedCategories, setSelectedCategories] = useState([]);
     const [flavour, setFlavour] = useState("");
-    const [variants, setVariants] = useState([{ size: "", price: "", cost: "", quantity: "", showOnPOS: true }]);
+    const [variants, setVariants] = useState([{ size: "", flavour: "", price: "", cost: "", quantity: "", showOnPOS: true, image: null, imageFile: null }]);
     const [stockCount, setStockCount] = useState(0);
     const [inStock, setInStock] = useState(true);
     const [showOnPOS, setShowOnPOS] = useState(true);
@@ -43,8 +43,19 @@ const Add = () => {
         });
     };
 
+    const handleVariantImageChange = (index, file) => {
+        if (!isValidImage(file)) {
+            toast.error(`Invalid file: Must be image and < ${MAX_IMAGE_SIZE_MB}MB`);
+            return;
+        }
+        const newVariants = [...variants];
+        newVariants[index].imageFile = file; // Store file for upload
+        newVariants[index].imagePreview = URL.createObjectURL(file); // For preview (optional)
+        setVariants(newVariants);
+    };
+
     const addVariant = () => {
-        setVariants([...variants, { size: "", price: "", cost: "", quantity: "", showOnPOS: true }]);
+        setVariants([...variants, { size: "", flavour: "", price: "", cost: "", quantity: "", showOnPOS: true, image: null, imageFile: null }]);
     };
 
     const removeVariant = (index) => {
@@ -66,7 +77,7 @@ const Add = () => {
         setPrice("");
         setSelectedCategories([]);
         setFlavour("");
-        setVariants([{ size: "", price: "", cost: "", quantity: "", showOnPOS: true }]);
+        setVariants([{ size: "", flavour: "", price: "", cost: "", quantity: "", showOnPOS: true, image: null, imageFile: null }]);
         setStockCount(0);
         setInStock(true);
         setShowOnPOS(true);
@@ -95,10 +106,36 @@ const Add = () => {
             formData.append("sweetnessLevel", sweetnessLevel);
             formData.append("mintLevel", mintLevel);
 
-            // Filter out empty variants before sending
+            // Filter out empty variants before sending, but keep index mapping correct for images?
+            // Actually simplest is to send all, or if we filter we must filter images too.
+            // Let's filter only if size/price missing
+            // But if we filter, indices shift. 
+            // Better strategy: Filter variants first, then construct FormData with new indices.
+
             const validVariants = variants.filter(v => v.size && v.price && v.quantity);
+
             if (validVariants.length > 0) {
-                formData.append("variants", JSON.stringify(validVariants));
+                // We need to strip imageFile from JSON to avoid circular/bloat (though JSON.stringify ignores functions/dom nodes usually)
+                // Also we need to correctly map the files.
+                // Approach: Attach files using a known key.
+                const variantsToSend = validVariants.map(v => ({
+                    size: v.size,
+                    flavour: v.flavour,
+                    price: v.price,
+                    cost: v.cost,
+                    quantity: v.quantity,
+                    showOnPOS: v.showOnPOS,
+                    cloverItemId: v.cloverItemId,
+                    image: v.image // keep existing URL if any
+                }));
+                formData.append("variants", JSON.stringify(variantsToSend));
+
+                // Append files
+                validVariants.forEach((v, index) => {
+                    if (v.imageFile) {
+                        formData.append(`variant_image_${index}`, v.imageFile);
+                    }
+                });
             }
 
             images.forEach((img, index) => {
@@ -136,7 +173,7 @@ const Add = () => {
                 setPrice("");
                 setSelectedCategories([]);
                 setFlavour("");
-                setVariants([{ size: "", price: "", quantity: "" }]);
+                setVariants([{ size: "", flavour: "", price: "", quantity: "", showOnPOS: true, image: null, imageFile: null }]);
                 setStockCount(0);
                 setInStock(true);
                 setShowOnPOS(true);
@@ -236,7 +273,9 @@ const Add = () => {
                         setPrice(payloadProduct.price ?? "");
                         setSelectedCategories(payloadProduct.categories || []);
                         setFlavour(payloadProduct.flavour || "");
-                        setVariants((payloadProduct.variants && payloadProduct.variants.length > 0) ? payloadProduct.variants : [{ size: "", price: "", cost: "", quantity: "", showOnPOS: true }]);
+                        setVariants((payloadProduct.variants && payloadProduct.variants.length > 0)
+                            ? payloadProduct.variants.map(v => ({ ...v, imageFile: null })) // Ensure local state props exist
+                            : [{ size: "", flavour: "", price: "", cost: "", quantity: "", showOnPOS: true, image: null, imageFile: null }]);
                         setStockCount(payloadProduct.stockCount ?? 0);
                         setInStock(payloadProduct.inStock ?? true);
                         setSweetnessLevel(payloadProduct.sweetnessLevel ?? 5);
@@ -536,8 +575,10 @@ const Add = () => {
                     </button>
                 </div>
                 {variants.length > 0 && (
-                    <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1fr_0.5fr_0.5fr] gap-2 mb-2 px-2 text-xs font-semibold text-gray-500">
+                    <div className="grid grid-cols-[30px_1fr_1fr_1fr_1fr_0.8fr_0.8fr_0.8fr_0.3fr_0.3fr] gap-2 mb-2 px-2 text-xs font-semibold text-gray-500">
+                        <div>Img</div>
                         <div>Name/Size</div>
+                        <div>Flavour</div>
                         <div>Price</div>
                         <div>Cost</div>
                         <div>Stock</div>
@@ -546,41 +587,67 @@ const Add = () => {
                         <div className="text-center">Del</div>
                     </div>
                 )}
-                <div className="space-y-2">
+                <div className="space-y-4">
                     {variants.map((variant, index) => (
-                        <div key={index} className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1fr_0.5fr_0.5fr] gap-2 items-center">
+                        <div key={index} className="grid grid-cols-[30px_1fr_1fr_1fr_1fr_0.8fr_0.8fr_0.8fr_0.3fr_0.3fr] gap-2 items-center bg-gray-50 p-2 rounded">
+                            {/* Image Upload for Variant */}
+                            <label className="cursor-pointer">
+                                <div className="w-8 h-8 rounded border flex items-center justify-center bg-white overflow-hidden">
+                                    {variant.imagePreview ? (
+                                        <img src={variant.imagePreview} className="w-full h-full object-cover" alt="var" />
+                                    ) : variant.image ? (
+                                        <img src={variant.image} className="w-full h-full object-cover" alt="var" />
+                                    ) : (
+                                        <span className="text-[8px] text-gray-400">IMG</span>
+                                    )}
+                                </div>
+                                <input
+                                    type="file"
+                                    hidden
+                                    accept="image/*"
+                                    onChange={(e) => handleVariantImageChange(index, e.target.files[0])}
+                                />
+                            </label>
+
                             <input
                                 type="text"
-                                className="px-3 py-2 border rounded-md w-full text-sm"
-                                placeholder="Name/Size"
+                                className="px-2 py-2 border rounded-md w-full text-xs"
+                                placeholder="Size/Name"
                                 value={variant.size}
                                 onChange={(e) => updateVariant(index, "size", e.target.value)}
                             />
                             <input
+                                type="text"
+                                className="px-2 py-2 border rounded-md w-full text-xs"
+                                placeholder="Flavour"
+                                value={variant.flavour || ''}
+                                onChange={(e) => updateVariant(index, "flavour", e.target.value)}
+                            />
+                            <input
                                 type="number"
-                                className="px-3 py-2 border rounded-md w-full text-sm"
+                                className="px-2 py-2 border rounded-md w-full text-xs"
                                 placeholder="Price"
                                 value={variant.price}
                                 onChange={(e) => updateVariant(index, "price", e.target.value)}
                             />
                             <input
                                 type="number"
-                                className="px-3 py-2 border rounded-md w-full text-sm"
+                                className="px-2 py-2 border rounded-md w-full text-xs"
                                 placeholder="Cost"
                                 value={variant.cost || ''}
                                 onChange={(e) => updateVariant(index, "cost", e.target.value)}
                             />
                             <input
                                 type="number"
-                                className="px-3 py-2 border rounded-md w-full text-sm"
+                                className="px-2 py-2 border rounded-md w-full text-xs"
                                 placeholder="Qty"
                                 value={variant.quantity}
                                 onChange={(e) => updateVariant(index, "quantity", e.target.value)}
                             />
                             <input
                                 type="text"
-                                className="px-3 py-2 border rounded-md w-full text-sm bg-gray-50 text-gray-500"
-                                placeholder="Clover ID"
+                                className="px-2 py-2 border rounded-md w-full text-xs bg-gray-100 text-gray-500"
+                                placeholder="ID"
                                 value={variant.cloverItemId || ''}
                                 readOnly
                                 title="Clover Item ID (Synced)"
@@ -599,7 +666,7 @@ const Add = () => {
                                     <button
                                         type="button"
                                         onClick={() => removeVariant(index)}
-                                        className="px-2 py-1 bg-red-100 text-red-700 rounded-md hover:bg-red-200"
+                                        className="px-2 py-1 bg-red-100 text-red-700 rounded-md hover:bg-red-200 text-xs"
                                     >
                                         ✕
                                     </button>

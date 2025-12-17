@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 
 const variantSchema = new mongoose.Schema({
     size: { type: String, required: true }, // e.g., "10ml", "20ml", "30ml" or Variant Name
+    flavour: { type: String, default: "" }, // Variant specific flavour
     price: { type: Number, required: true },
     cost: { type: Number, default: 0 },
     quantity: { type: Number, required: true, default: 0 },
@@ -17,6 +18,7 @@ const productSchema = new mongoose.Schema({
     externalCloverId: { type: String, index: true, sparse: true },
     cloverItemGroupId: { type: String, index: true, sparse: true }, // ID of the item group if this product represents a group
     name: { type: String, required: true },
+    brand: { type: String, index: true }, // Brand name derived from Item Group or manual input
     // Support multiple categories per product
     categories: { type: [String], default: [] },
     flavour: { type: String, default: "" },

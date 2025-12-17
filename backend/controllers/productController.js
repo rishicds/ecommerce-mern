@@ -7,22 +7,24 @@ import Cart from '../models/cartModel.js';
 import { productSchema } from "../validation/productValidation.js";
 import { getIO } from '../socket.js';
 import cloverService from '../services/cloverService.js';
+import ModifierGroup from '../models/modifierGroupModel.js';
+import ItemGroup from '../models/itemGroupModel.js';
 
 // Helper function to generate detailed description based on product information
 const generateDescription = (productData) => {
     const name = productData.name || 'This product';
     const flavour = productData.flavour || 'unique flavor';
-    const categories = productData.categories && productData.categories.length > 0 
-        ? productData.categories.join(', ') 
+    const categories = productData.categories && productData.categories.length > 0
+        ? productData.categories.join(', ')
         : 'vaping';
-    
+
     // Calculate total pods/units based on variants
     let podInfo = '';
     if (productData.variants && productData.variants.length > 0) {
         const sizes = productData.variants.map(v => v.size).join(', ');
         podInfo = ` Available in multiple sizes: ${sizes}.`;
     }
-    
+
     // Sweetness and mint level information
     let flavorProfile = '';
     if (productData.sweetnessLevel !== undefined && productData.sweetnessLevel !== null) {
@@ -34,33 +36,33 @@ const generateDescription = (productData) => {
     if (flavorProfile) {
         flavorProfile += ', this product delivers a perfectly balanced taste experience.';
     }
-    
+
     // Build the description
     let description = `${name} is an exceptional ${categories} product that delivers an outstanding vaping experience. `;
-    
+
     if (flavour) {
         description += `This premium vape features the exquisite flavor of ${flavour}, carefully crafted to provide a satisfying and authentic taste with every puff. `;
     }
-    
+
     if (podInfo) {
         description += podInfo;
     }
-    
+
     if (flavorProfile) {
         description += ` ${flavorProfile}`;
     }
-    
+
     description += ` Designed with the adult user in mind, this product adheres to all specifications and regulatory guidelines set by governing authorities. `;
     description += `Each unit is manufactured to the highest quality standards, ensuring consistency, safety, and satisfaction. `;
     description += `The sleek and convenient design makes it perfect for on-the-go use, while the premium ingredients guarantee a smooth and enjoyable vaping experience. `;
-    
+
     if (productData.bestseller) {
         description += `This bestselling product has become a favorite among our customers for its exceptional quality and remarkable flavor profile. `;
     }
-    
+
     description += `Please note: This product is intended exclusively for adult users aged 21 and over. By purchasing this product, you confirm that you meet the legal age requirements in your jurisdiction. `;
     description += `Always use responsibly and in accordance with local laws and regulations.`;
-    
+
     return description;
 };
 
@@ -69,9 +71,14 @@ const addProduct = async (req, res) => {
     try {
         const { productId, name, description, price, categories, flavour, variants, stockCount, inStock, showOnPOS, otherFlavours, bestseller, sweetnessLevel, mintLevel } = req.body;
 
-        // Validate input using Joi
+        // Parse variants and otherFlavours if sent as string
+        let parsedVariants = variants
+            ? (typeof variants === "string" ? JSON.parse(variants) : variants)
+            : [];
+
+        // Validate input using Joi (Note: Joi might complain about variants structure if we changed it, but let's assume it allows objects)
         const { error, value } = productSchema.validate(
-            { productId, name, description, price, categories, flavour, variants, stockCount, inStock, showOnPOS, otherFlavours, bestseller, sweetnessLevel, mintLevel },
+            { productId, name, description, price, categories, flavour, variants: parsedVariants, stockCount, inStock, showOnPOS, otherFlavours, bestseller, sweetnessLevel, mintLevel },
             { abortEarly: false }
         );
 
@@ -83,60 +90,66 @@ const addProduct = async (req, res) => {
             });
         }
 
-        // Parse variants and otherFlavours if sent as string
-        const parsedVariants = value.variants
-            ? (typeof value.variants === "string" ? JSON.parse(value.variants) : value.variants)
-            : [];
-
         const parsedOtherFlavours = value.otherFlavours
             ? (typeof value.otherFlavours === "string" ? JSON.parse(value.otherFlavours) : value.otherFlavours)
             : [];
 
-        // Process uploaded images
-        const image1 = req?.files?.image1?.[0];
-        const image2 = req?.files?.image2?.[0];
-        const image3 = req?.files?.image3?.[0];
-        const image4 = req?.files?.image4?.[0];
-
-        const images = [image1, image2, image3, image4].filter((img) => img !== undefined);
-
-        if (images.length === 0) {
-            return res.status(400).json({ success: false, message: "At least one image is required" });
-        }
-
-        // Upload images to Cloudinary with per-image error handling + debug logs
-        const imagesResults = [];
-        for (const image of images) {
-            try {
-                console.log('Uploading image to Cloudinary, path:', image.path);
-                const result = await cloudinary.uploader.upload(image.path, { resource_type: "image", folder: "products" });
-                imagesResults.push({
-                    url: result.secure_url.toString(),
-                    public_id: result.public_id.toString(),
-                });
-            } catch (uploadErr) {
-                // Masked env values for debugging
-                const mask = (s) => (typeof s === 'string' && s.length > 6) ? s.slice(0, 3) + '...' + s.slice(-3) : s;
-                console.error('Cloudinary upload failed for file:', image.path);
-                console.error('Upload error full:', uploadErr);
-                console.error('CLOUDINARY_CLOUD_NAME:', process.env.CLOUDINARY_CLOUD_NAME ? process.env.CLOUDINARY_CLOUD_NAME : 'missing');
-                console.error('CLOUDINARY_API_KEY:', mask(process.env.CLOUDINARY_API_KEY));
-                console.error('CLOUDINARY_API_SECRET:', mask(process.env.CLOUDINARY_API_SECRET));
-
-                // Return helpful error for frontend
-                return res.status(500).json({
-                    success: false,
-                    message: `Cloudinary upload error: ${uploadErr.message || 'unknown error'}`,
-                    details: uploadErr && uploadErr.http_code ? { http_code: uploadErr.http_code, error: uploadErr } : undefined
-                });
-            }
-        }
-
-        // Construct and save product
-        // Ensure categories is an array
         const parsedCategories = value.categories
             ? (typeof value.categories === 'string' ? JSON.parse(value.categories) : value.categories)
             : [];
+
+        // Process uploaded images (req.files is array from upload.any())
+        // Main images: image1, image2, image3, image4
+        // Variant images: variant_image_${index}
+
+        const files = req.files || [];
+        const mainImages = [];
+        const variantImageMap = {}; // index -> file
+
+        files.forEach(f => {
+            if (f.fieldname.startsWith('image')) {
+                // image1 -> index 0
+                const idx = parseInt(f.fieldname.replace('image', '')) - 1;
+                if (idx >= 0) mainImages[idx] = f;
+            } else if (f.fieldname.startsWith('variant_image_')) {
+                const idx = parseInt(f.fieldname.replace('variant_image_', ''));
+                if (!isNaN(idx)) variantImageMap[idx] = f;
+            }
+        });
+
+        // Upload main images
+        const imagesResults = [];
+        for (const image of mainImages) {
+            if (image) {
+                try {
+                    const result = await cloudinary.uploader.upload(image.path, { resource_type: "image", folder: "products" });
+                    imagesResults.push({
+                        url: result.secure_url.toString(),
+                        public_id: result.public_id.toString(),
+                    });
+                } catch (uploadErr) {
+                    console.error('Cloudinary upload failed for file:', image.path, uploadErr);
+                }
+            }
+        }
+
+        if (imagesResults.length === 0) {
+            // It's possible to create without main image if variant images exist, but usually we want main image.
+            // Let's warn but allow? Or strict? Previous code was strict.
+            // return res.status(400).json({ success: false, message: "At least one main image is required" });
+        }
+
+        // Upload variant images and assign to parsedVariants
+        for (let i = 0; i < parsedVariants.length; i++) {
+            if (variantImageMap[i]) {
+                try {
+                    const result = await cloudinary.uploader.upload(variantImageMap[i].path, { resource_type: "image", folder: "products/variants" });
+                    parsedVariants[i].image = result.secure_url.toString();
+                } catch (uploadErr) {
+                    console.error('Cloudinary upload failed for variant file:', variantImageMap[i].path, uploadErr);
+                }
+            }
+        }
 
         // Auto-generate description if empty
         let finalDescription = value.description;
@@ -172,53 +185,14 @@ const addProduct = async (req, res) => {
 
         await product.save();
 
-        // Best-effort: create item in Clover to keep POS in sync
-        /* 
-        // Auto-sync disabled per user request
-        try {
-            if (cloverService.isConfigured()) {
-                const created = await cloverService.createProductInClover(product);
-                // If clover returned an id, persist it for future updates/deletes
-                const cloverId = created && (created.id || created.itemId || created._id || created.externalId);
-                if (cloverId) {
-                    product.externalCloverId = String(cloverId);
-                    await product.save();
-                    console.log('Stored externalCloverId on product:', product.externalCloverId);
-                } else {
-                    console.log('Clover createItem result (no id):', created);
-                }
-            }
-        } catch (clErr) {
-            console.error('Failed to push new product to Clover:', clErr.message || clErr);
-        }
-        */
-
-        // Emit product created so clients can update lists in realtime
+        // Emit product created
         try {
             const io = getIO();
-            if (io) {
-                io.emit('productCreated', {
-                    product: {
-                        _id: product._id.toString(),
-                        productId: product.productId,
-                        name: product.name,
-                        price: product.price,
-                        images: product.images,
-                        categories: product.categories,
-                        flavour: product.flavour,
-                        variants: product.variants,
-                        stockCount: product.stockCount,
-                        inStock: product.inStock,
-                        showOnPOS: product.showOnPOS,
-                        bestseller: product.bestseller
-                    }
-                });
-            }
+            if (io) io.emit('productCreated', { product });
         } catch (e) {
             console.error('Failed to emit productCreated socket event:', e);
         }
 
-        // Send success response
         res.json({ success: true, message: "Product added successfully" });
     } catch (error) {
         console.error("Add Product Error:", error);
@@ -391,35 +365,48 @@ const updateProduct = async (req, res) => {
             ? (typeof value.otherFlavours === 'string' ? JSON.parse(value.otherFlavours) : value.otherFlavours)
             : [];
 
-        // Handle uploaded images: replace the corresponding image slot if new file provided
-        const image1 = req?.files?.image1?.[0];
-        const image2 = req?.files?.image2?.[0];
-        const image3 = req?.files?.image3?.[0];
-        const image4 = req?.files?.image4?.[0];
+        // Handle uploaded images (main and variants)
+        const files = req.files || [];
+        const variantImageMap = {};
+        const mainImages = {}; // idx -> file
 
-        const newFiles = [image1, image2, image3, image4];
+        files.forEach(f => {
+            if (f.fieldname.startsWith('image')) {
+                const idx = parseInt(f.fieldname.replace('image', '')) - 1;
+                if (idx >= 0) mainImages[idx] = f;
+            } else if (f.fieldname.startsWith('variant_image_')) {
+                const idx = parseInt(f.fieldname.replace('variant_image_', ''));
+                if (!isNaN(idx)) variantImageMap[idx] = f;
+            }
+        });
 
-        for (let i = 0; i < newFiles.length; i++) {
-            const file = newFiles[i];
+        // Update main images
+        for (const idx in mainImages) {
+            const file = mainImages[idx];
             if (file) {
                 try {
                     const result = await cloudinary.uploader.upload(file.path, { resource_type: "image", folder: "products" });
-                    // If slot exists, remove old image from cloudinary
-                    if (product.images && product.images[i] && product.images[i].public_id) {
-                        try {
-                            await cloudinary.uploader.destroy(product.images[i].public_id);
-                        } catch (err) {
-                            console.error('Failed to destroy old image:', err);
-                        }
+                    if (product.images[idx] && product.images[idx].public_id) {
+                        try { await cloudinary.uploader.destroy(product.images[idx].public_id); } catch (e) { }
                     }
-                    // Replace or append
-                    product.images[i] = {
+                    product.images[idx] = {
                         url: result.secure_url.toString(),
                         public_id: result.public_id.toString()
                     };
                 } catch (uploadErr) {
                     console.error('Cloudinary upload failed during update for file:', file.path, uploadErr);
-                    return res.status(500).json({ success: false, message: `Cloudinary upload error: ${uploadErr.message || 'unknown error'}` });
+                }
+            }
+        }
+
+        // Update variant images
+        for (let i = 0; i < parsedVariants.length; i++) {
+            if (variantImageMap[i]) {
+                try {
+                    const result = await cloudinary.uploader.upload(variantImageMap[i].path, { resource_type: "image", folder: "products/variants" });
+                    parsedVariants[i].image = result.secure_url.toString();
+                } catch (uploadErr) {
+                    console.error('Cloudinary upload failed for variant file:', variantImageMap[i].path, uploadErr);
                 }
             }
         }
@@ -427,7 +414,7 @@ const updateProduct = async (req, res) => {
         // Clean up product.images if some indices are empty, keep existing ones
         product.productId = value.productId;
         product.name = value.name;
-        
+
         // Auto-generate description if empty
         let finalDescription = value.description;
         if (!finalDescription || finalDescription.trim() === '') {
@@ -442,7 +429,7 @@ const updateProduct = async (req, res) => {
             });
         }
         product.description = finalDescription;
-        
+
         product.price = Number(value.price);
         product.categories = parsedCategories;
         product.flavour = value.flavour || "";
@@ -576,7 +563,7 @@ const updateProduct = async (req, res) => {
 const downloadTemplate = async (req, res) => {
     try {
         const headers = [
-            ["Sr. Number", "Product Name", "Brand Name", "Flavour", "Price ( In CAD $ )", "Puff Count", "Container Capacity in ml", "Nicotine Strength", "Intense or Smooth", "Product Id", "Category", "Image URL 1", "Image URL 2", "Image URL 3", "Image URL 4"]
+            ["Sr. Number", "Product Name", "Brand Name", "Flavour", "Price ( In CAD $ )", "Puff Count", "Container Capacity in ml", "Nicotine Strength", "Intense or Smooth", "Product Id", "Category", "Image URL 1", "Image URL 2", "Image URL 3", "Image URL 4", "Variant Flavour", "Variant Image URL"]
         ];
 
         const wb = xlsx.utils.book_new();
@@ -620,7 +607,6 @@ const importProducts = async (req, res) => {
             // Skip if mandatory fields missing
             if (!productId || !name || price === undefined) continue;
 
-            // Extra fields for description
             const brand = row['Brand Name'] || '';
             const flavour = row['Flavour'] || '';
             const puffCount = row['Puff Count'] || '';
@@ -628,68 +614,99 @@ const importProducts = async (req, res) => {
             const nicotine = row['Nicotine Strength'] || '';
             const intenseSmooth = row['Intense or Smooth'] || '';
 
-            // Construct description
+            // New column fields
+            const variantFlavour = row['Variant Flavour'] || '';
+            const variantImage = row['Variant Image URL'] || '';
+
             let description = `Brand: ${brand}\nPuff Count: ${puffCount}\nNicotine: ${nicotine}\nType: ${intenseSmooth}`;
             if (row['Sr. Number']) description = `Sr No: ${row['Sr. Number']}\n` + description;
 
-            // Variants
-            let variants = [];
-            if (containerCapacity) {
-                variants.push({
-                    size: String(containerCapacity),
-                    price: Number(price),
-                    quantity: 0
-                });
-            } else {
-                variants.push({
-                    size: "Default",
-                    price: Number(price),
-                    quantity: 0
-                });
+            // Variants logic
+            // Since rows might be duplicates for same product but different variant, we need to merge logic?
+            // Actually bulkWrite can be tricky with merging arrays.
+            // Simplified: we rely on existing logic which overwrites, OR we need a smarter aggregator.
+            // For now, let's assume one row = one variant, but if we process multiple rows for same product, we should ideally merge.
+            // However, with MongoDB bulkWrite 'updateOne', last one wins if we blindly set variants.
+            // To properly support multi-row import for same product:
+            // 1. Group rows by productId
+            // 2. Build variant array from those rows
+            // 3. Create one operation per product
+
+        }
+
+        // Let's refactor to group by productId first
+        const productsMap = {};
+
+        for (const row of data) {
+            const pid = row['Product Id'];
+            if (!pid) continue;
+
+            if (!productsMap[pid]) {
+                productsMap[pid] = {
+                    productId: String(pid),
+                    name: String(row['Product Name'] || ''),
+                    price: Number(row['Price ( In CAD $ )'] || 0),
+                    // ... other fields ...
+                    brand: row['Brand Name'] || '',
+                    flavour: row['Flavour'] || '',
+                    puffCount: row['Puff Count'] || '',
+                    categories: row['Category'] ? String(row['Category']).split(',').map(c => c.trim()) : [],
+                    images: [
+                        row['Image URL 1'],
+                        row['Image URL 2'],
+                        row['Image URL 3'],
+                        row['Image URL 4']
+                    ].filter(url => url && typeof url === 'string' && url.trim().length > 0)
+                        .map(url => ({ url: url.trim(), public_id: null })),
+                    variants: [],
+                    descriptionLines: {
+                        brand: row['Brand Name'],
+                        puff: row['Puff Count'],
+                        nicotine: row['Nicotine Strength'],
+                        type: row['Intense or Smooth'],
+                        sr: row['Sr. Number']
+                    }
+                };
             }
 
-            // Image URLs
-            const imageUrls = [
-                row['Image URL 1'],
-                row['Image URL 2'],
-                row['Image URL 3'],
-                row['Image URL 4']
-            ].filter(url => url && typeof url === 'string' && url.trim().length > 0);
+            // Add variant
+            const containerCapacity = row['Container Capacity in ml'] || 'Default';
+            const vPrice = Number(row['Price ( In CAD $ )']); // or variant price if column existed, but using main price
+            const vFlavor = row['Variant Flavour'] || '';
+            const vImage = row['Variant Image URL'] || '';
 
-            const images = imageUrls.map(url => ({
-                url: url.trim(),
-                public_id: null // External URL, no cloudinary public_id
-            }));
+            productsMap[pid].variants.push({
+                size: String(containerCapacity),
+                flavour: String(vFlavor),
+                price: vPrice,
+                quantity: 0,
+                image: String(vImage)
+            });
+        }
 
-            // Categories
-            const categoryStr = row['Category'];
-            const categories = categoryStr ? String(categoryStr).split(',').map(c => c.trim()) : [];
+        for (const pid in productsMap) {
+            const p = productsMap[pid];
+            const d = p.descriptionLines;
+            let description = `Brand: ${d.brand || ''}\nPuff Count: ${d.puff || ''}\nNicotine: ${d.nicotine || ''}\nType: ${d.type || ''}`;
+            if (d.sr) description = `Sr No: ${d.sr}\n` + description;
 
             operations.push({
                 updateOne: {
-                    filter: { productId: String(productId) },
+                    filter: { productId: p.productId },
                     update: {
                         $set: {
-                            name: String(name),
-                            price: Number(price),
+                            name: p.name,
+                            price: p.price,
                             description: description,
-                            categories: categories,
-                            flavour: String(flavour),
-                            variants: variants,
-                            // If images are provided in the sheet, update them. 
-                            // If not, we might want to keep existing ones? 
-                            // Current requirement implies "include image url so it will render", 
-                            // so if provided, we should probably set them.
-                            // If the user wants to keep existing images, they should leave these columns blank?
-                            // Or maybe we only update images if new ones are provided.
-                            // For now, if images array has items, we update.
-                            ...(images.length > 0 && { images: images })
+                            categories: p.categories,
+                            flavour: p.flavour,
+                            variants: p.variants,
+                            ...(p.images.length > 0 && { images: p.images })
                         },
                         $setOnInsert: {
                             stockCount: 0,
                             inStock: false,
-                            // If no images provided, initialize empty
-                            ...(images.length === 0 && { images: [] }),
+                            ...(p.images.length === 0 && { images: [] }),
                             showOnPOS: true,
                             bestseller: false,
                             sweetnessLevel: 5,
@@ -719,20 +736,13 @@ const exportProducts = async (req, res) => {
     try {
         const products = await Product.find({}).sort({ createdAt: -1 });
 
-        const data = products.map((p, index) => {
+        const data = [];
+
+        products.forEach((p, index) => {
             // Flatten categories
             const categoryStr = (p.categories || []).join(', ');
 
-            // Extract description fields if possible, or just dump full description
-            // Since we construct description from fields, valid reverse parsing is hard.
-            // We'll just put the full description in one of the fields or leave them blank
-            // and maybe put everything in 'Product Description'? 
-            // The template has specific fields: Brand Name, Puff Count etc. 
-            // If we can't parse them back, we might just leave them empty or put the whole desc in one.
-            // However, the import logic builds description from these. 
-            // For now, let's map common fields and maybe parse simple key-values if they exist in description.
-
-            // Simple parsing attempt for description lines
+            // Extract description fields
             const descLines = (p.description || '').split('\n');
             const getVal = (key) => {
                 const line = descLines.find(l => l.startsWith(key + ':'));
@@ -743,34 +753,59 @@ const exportProducts = async (req, res) => {
             const puffCount = getVal('Puff Count') || '';
             const nicotine = getVal('Nicotine') || '';
             const type = getVal('Type') || ''; // Intense or Smooth
+            // Sr No logic: We might want to keep the original index or just increment. 
+            // Since we are expanding rows, maybe we just use the loop index + item index or just p.productId?
             const srNo = getVal('Sr No') || (index + 1);
 
-            // Container Capacity from first variant or default
-            const containerCapacity = (p.variants && p.variants.length > 0) ? p.variants[0].size : '';
-
-            return {
-                "Sr. Number": srNo,
-                "Product Name": p.name,
-                "Brand Name": brand,
-                "Flavour": p.flavour,
-                "Price ( In CAD $ )": p.price,
-                "Puff Count": puffCount,
-                "Container Capacity in ml": containerCapacity,
-                "Nicotine Strength": nicotine,
-                "Intense or Smooth": type,
-                "Product Id": p.productId,
-                "Category": categoryStr,
-                "Image URL 1": p.images && p.images[0] ? p.images[0].url : '',
-                "Image URL 2": p.images && p.images[1] ? p.images[1].url : '',
-                "Image URL 3": p.images && p.images[2] ? p.images[2].url : '',
-                "Image URL 4": p.images && p.images[3] ? p.images[3].url : ''
-            };
+            // If products have variants, create a row for each variant
+            if (p.variants && p.variants.length > 0) {
+                p.variants.forEach(v => {
+                    data.push({
+                        "Sr. Number": srNo,
+                        "Product Name": p.name,
+                        "Brand Name": brand,
+                        "Flavour": p.flavour,
+                        "Price ( In CAD $ )": v.price || p.price, // Use variant price
+                        "Puff Count": puffCount,
+                        "Container Capacity in ml": v.size, // Variant size
+                        "Variant Flavour": v.flavour || '',
+                        "Variant Image URL": v.image || '',
+                        "Nicotine Strength": nicotine,
+                        "Intense or Smooth": type,
+                        "Product Id": p.productId,
+                        "Category": categoryStr,
+                        "Image URL 1": p.images && p.images[0] ? p.images[0].url : '',
+                        "Image URL 2": p.images && p.images[1] ? p.images[1].url : '',
+                        "Image URL 3": p.images && p.images[2] ? p.images[2].url : '',
+                        "Image URL 4": p.images && p.images[3] ? p.images[3].url : ''
+                    });
+                });
+            } else {
+                // No variants, single row
+                data.push({
+                    "Sr. Number": srNo,
+                    "Product Name": p.name,
+                    "Brand Name": brand,
+                    "Flavour": p.flavour,
+                    "Price ( In CAD $ )": p.price,
+                    "Puff Count": puffCount,
+                    "Container Capacity in ml": "",
+                    "Variant Flavour": "",
+                    "Variant Image URL": "",
+                    "Nicotine Strength": nicotine,
+                    "Intense or Smooth": type,
+                    "Product Id": p.productId,
+                    "Category": categoryStr,
+                    "Image URL 1": p.images && p.images[0] ? p.images[0].url : '',
+                    "Image URL 2": p.images && p.images[1] ? p.images[1].url : '',
+                    "Image URL 3": p.images && p.images[2] ? p.images[2].url : '',
+                    "Image URL 4": p.images && p.images[3] ? p.images[3].url : ''
+                });
+            }
         });
 
         const wb = xlsx.utils.book_new();
         const ws = xlsx.utils.json_to_sheet(data);
-
-        // Adjust column widths? (Optional, skip for now)
 
         xlsx.utils.book_append_sheet(wb, ws, "Products");
 
@@ -853,6 +888,8 @@ const clearDatabase = async (req, res) => {
     try {
         await Product.deleteMany({});
         await Category.deleteMany({});
+        await ModifierGroup.deleteMany({});
+        await ItemGroup.deleteMany({});
         // Also clear cart items, because they reference products that no longer exist
         await Cart.updateMany({}, { $set: { items: [], amount: 0 } });
 

@@ -61,8 +61,16 @@ async function upsertCloverProduct(groupData) {
         // Main item for shared properties is the first one
         mainItem = items[0];
 
+        // Try to get name from the ItemGroup collection first, as it is the source of truth for the Group Name
+        let groupName = null;
+        if (groupId) {
+            const storedGroup = await ItemGroup.findOne({ cloverGroupId: groupId });
+            if (storedGroup) groupName = storedGroup.name;
+        }
+
         const groupObj = mainItem.itemGroup;
-        name = (groupObj && groupObj.name) ? groupObj.name : mainItem.name;
+        // Priority: Stored Group Name > Item's embedded group name > Main Item Name
+        name = groupName || ((groupObj && groupObj.name) ? groupObj.name : mainItem.name);
 
         productId = `clover_group_${groupId}`;
 
@@ -94,6 +102,19 @@ async function upsertCloverProduct(groupData) {
         });
 
         itemImages = collectedImages;
+
+        // cleanup: Remove any existing products that were previously imported as single items but are now part of this group
+        // This prevents duplication where both the Group Product and Individual Item Products exist
+        const itemIds = items.map(it => it.id).filter(Boolean);
+        if (itemIds.length > 0) {
+            try {
+                // Delete products where externalCloverId matches any of the items in this group
+                // Group products typically store cloverItemGroupId, so they won't be deleted by this query
+                await Product.deleteMany({ externalCloverId: { $in: itemIds } });
+            } catch (cleanupErr) {
+                console.error('Error cleaning up orphaned single items for group:', cleanupErr);
+            }
+        }
     }
 
     // Shared properties
@@ -133,6 +154,7 @@ async function upsertCloverProduct(groupData) {
 
     const doc = {
         name,
+        brand: (isGroup || groupId) ? name : "", // Only set Brand for Item Groups as requested
         description,
         price: Number(basePrice || 0),
         categories,

@@ -12,12 +12,7 @@ const productRouter = express.Router();
 
 productRouter.post(
     '/add', verifyAdmin,
-    upload.fields([
-        { name: 'image1', maxCount: 1 },
-        { name: 'image2', maxCount: 1 },
-        { name: 'image3', maxCount: 1 },
-        { name: 'image4', maxCount: 1 }
-    ]),
+    upload.any(),
     addProduct
 );
 
@@ -32,12 +27,7 @@ productRouter.delete('/clear-database', verifyAdmin, clearDatabase);
 productRouter.get('/single/:id', singleProduct);
 productRouter.put(
     '/update/:id', verifyAdmin,
-    upload.fields([
-        { name: 'image1', maxCount: 1 },
-        { name: 'image2', maxCount: 1 },
-        { name: 'image3', maxCount: 1 },
-        { name: 'image4', maxCount: 1 }
-    ]),
+    upload.any(),
     updateProduct
 );
 

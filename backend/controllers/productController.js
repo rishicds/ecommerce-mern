@@ -563,7 +563,7 @@ const updateProduct = async (req, res) => {
 const downloadTemplate = async (req, res) => {
     try {
         const headers = [
-            ["Sr. Number", "Product Name", "Brand Name", "Flavour", "Price ( In CAD $ )", "Puff Count", "Container Capacity in ml", "Nicotine Strength", "Intense or Smooth", "Product Id", "Category", "Image URL 1", "Image URL 2", "Image URL 3", "Image URL 4", "Variant Flavour", "Variant Image URL"]
+            ["Sr. Number", "Product Name", "Brand Name", "Flavour", "Price ( In CAD $ )", "Puff Count", "Container Capacity in ml", "Nicotine Strength", "Intense or Smooth", "Sweetness Level", "Mint Level", "Best Seller", "Group Id", "Item Id", "Category", "Image URL 1", "Image URL 2", "Image URL 3", "Image URL 4", "Variant Flavour", "Variant Image URL"]
         ];
 
         const wb = xlsx.utils.book_new();
@@ -600,7 +600,7 @@ const importProducts = async (req, res) => {
         let successCount = 0;
 
         for (const row of data) {
-            const productId = row['Product Id'];
+            const productId = row['Group Id'] || row['Product Id']; // Support both for backward compatibility or transition
             const name = row['Product Name'];
             const price = row['Price ( In CAD $ )'];
 
@@ -613,6 +613,9 @@ const importProducts = async (req, res) => {
             const containerCapacity = row['Container Capacity in ml'] || '';
             const nicotine = row['Nicotine Strength'] || '';
             const intenseSmooth = row['Intense or Smooth'] || '';
+            const sweetnessLevel = row['Sweetness Level'] !== undefined ? Number(row['Sweetness Level']) : 5;
+            const mintLevel = row['Mint Level'] !== undefined ? Number(row['Mint Level']) : 0;
+            const bestseller = row['Best Seller'] === 'Yes' || row['Best Seller'] === true;
 
             // New column fields
             const variantFlavour = row['Variant Flavour'] || '';
@@ -638,7 +641,7 @@ const importProducts = async (req, res) => {
         const productsMap = {};
 
         for (const row of data) {
-            const pid = row['Product Id'];
+            const pid = row['Group Id'] || row['Product Id'];
             if (!pid) continue;
 
             if (!productsMap[pid]) {
@@ -659,6 +662,11 @@ const importProducts = async (req, res) => {
                     ].filter(url => url && typeof url === 'string' && url.trim().length > 0)
                         .map(url => ({ url: url.trim(), public_id: null })),
                     variants: [],
+                    variantFlavour: row['Variant Flavour'] || '',
+                    variantImage: row['Variant Image URL'] || '',
+                    sweetnessLevel: row['Sweetness Level'] !== undefined ? Number(row['Sweetness Level']) : 5,
+                    mintLevel: row['Mint Level'] !== undefined ? Number(row['Mint Level']) : 0,
+                    bestseller: row['Best Seller'] === 'Yes' || row['Best Seller'] === true,
                     descriptionLines: {
                         brand: row['Brand Name'],
                         puff: row['Puff Count'],
@@ -675,12 +683,15 @@ const importProducts = async (req, res) => {
             const vFlavor = row['Variant Flavour'] || '';
             const vImage = row['Variant Image URL'] || '';
 
+            const vItemId = row['Item Id'] || ''; // NEW: Capture Item Id if present
+
             productsMap[pid].variants.push({
                 size: String(containerCapacity),
                 flavour: String(vFlavor),
                 price: vPrice,
                 quantity: 0,
-                image: String(vImage)
+                image: String(vImage),
+                sku: vItemId // Store Item Id as sku or a temporary field? Let's use sku for now as it maps well
             });
         }
 
@@ -701,6 +712,9 @@ const importProducts = async (req, res) => {
                             categories: p.categories,
                             flavour: p.flavour,
                             variants: p.variants,
+                            sweetnessLevel: p.sweetnessLevel,
+                            mintLevel: p.mintLevel,
+                            bestseller: p.bestseller,
                             ...(p.images.length > 0 && { images: p.images })
                         },
                         $setOnInsert: {
@@ -708,9 +722,6 @@ const importProducts = async (req, res) => {
                             inStock: false,
                             ...(p.images.length === 0 && { images: [] }),
                             showOnPOS: true,
-                            bestseller: false,
-                            sweetnessLevel: 5,
-                            mintLevel: 0,
                             otherFlavours: []
                         }
                     },
@@ -768,16 +779,20 @@ const exportProducts = async (req, res) => {
                         "Price ( In CAD $ )": v.price || p.price, // Use variant price
                         "Puff Count": puffCount,
                         "Container Capacity in ml": v.size, // Variant size
-                        "Variant Flavour": v.flavour || '',
-                        "Variant Image URL": v.image || '',
                         "Nicotine Strength": nicotine,
                         "Intense or Smooth": type,
-                        "Product Id": p.productId,
+                        "Sweetness Level": p.sweetnessLevel,
+                        "Mint Level": p.mintLevel,
+                        "Best Seller": p.bestseller ? 'Yes' : 'No',
+                        "Group Id": p.productId,
+                        "Item Id": v.sku || v._id || '', // Use SKU or _id
                         "Category": categoryStr,
                         "Image URL 1": p.images && p.images[0] ? p.images[0].url : '',
                         "Image URL 2": p.images && p.images[1] ? p.images[1].url : '',
                         "Image URL 3": p.images && p.images[2] ? p.images[2].url : '',
-                        "Image URL 4": p.images && p.images[3] ? p.images[3].url : ''
+                        "Image URL 4": p.images && p.images[3] ? p.images[3].url : '',
+                        "Variant Flavour": v.flavour || '',
+                        "Variant Image URL": v.image || ''
                     });
                 });
             } else {
@@ -790,16 +805,20 @@ const exportProducts = async (req, res) => {
                     "Price ( In CAD $ )": p.price,
                     "Puff Count": puffCount,
                     "Container Capacity in ml": "",
-                    "Variant Flavour": "",
-                    "Variant Image URL": "",
                     "Nicotine Strength": nicotine,
                     "Intense or Smooth": type,
-                    "Product Id": p.productId,
+                    "Sweetness Level": p.sweetnessLevel,
+                    "Mint Level": p.mintLevel,
+                    "Best Seller": p.bestseller ? 'Yes' : 'No',
+                    "Group Id": p.productId,
+                    "Item Id": "",
                     "Category": categoryStr,
                     "Image URL 1": p.images && p.images[0] ? p.images[0].url : '',
                     "Image URL 2": p.images && p.images[1] ? p.images[1].url : '',
                     "Image URL 3": p.images && p.images[2] ? p.images[2].url : '',
-                    "Image URL 4": p.images && p.images[3] ? p.images[3].url : ''
+                    "Image URL 4": p.images && p.images[3] ? p.images[3].url : '',
+                    "Variant Flavour": "",
+                    "Variant Image URL": ""
                 });
             }
         });

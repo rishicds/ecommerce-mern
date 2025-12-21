@@ -72,7 +72,10 @@ async function upsertCloverProduct(groupData) {
         // Priority: Stored Group Name > Item's embedded group name > Main Item Name
         name = groupName || ((groupObj && groupObj.name) ? groupObj.name : mainItem.name);
 
-        productId = `clover_group_${groupId}`;
+        // User requested: productId should be the Item ID (mainItem.id), and grouping ID should be prefixed
+        productId = mainItem.id;
+        // externalCloverId is set to groupId to keep track of the group reference
+        externalCloverId = groupId;
 
         // Collect all images from all items, unique by URL
         const imageUrls = new Set();
@@ -137,10 +140,18 @@ async function upsertCloverProduct(groupData) {
     const prices = variants.map(v => v.price);
     const basePrice = Math.min(...prices);
 
-    // Find existing
     let existing = null;
     if (isGroup && groupId) {
-        existing = await Product.findOne({ cloverItemGroupId: String(groupId) });
+        // Try finding by new grouping ID OR old grouping ID/ProductId to support migration
+        // We want to find if we already have this group imported
+        const groupIdentifier = `clover_group_${groupId}`;
+        existing = await Product.findOne({
+            $or: [
+                { cloverItemGroupId: groupIdentifier }, // New format
+                { cloverItemGroupId: String(groupId) }, // Old format
+                { productId: `clover_group_${groupId}` } // Old productId format
+            ]
+        });
     } else if (externalCloverId) {
         existing = await Product.findOne({ externalCloverId: String(externalCloverId) });
     }
@@ -165,10 +176,10 @@ async function upsertCloverProduct(groupData) {
         variants,
         taxRates,
         revenueClass,
-        cloverItemGroupId: groupId ? String(groupId) : undefined
+        cloverItemGroupId: groupId ? `clover_group_${groupId}` : undefined
     };
 
-    if (externalCloverId && !isGroup) doc.externalCloverId = String(externalCloverId);
+    if (externalCloverId) doc.externalCloverId = String(externalCloverId);
     // Ensure productId is set for new items
     if (!existing) doc.productId = productId;
 

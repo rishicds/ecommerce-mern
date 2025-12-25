@@ -85,6 +85,14 @@ const flattenProducts = (products) => {
             product.variants.forEach(variant => {
                 // Ensure unique key for React
                 const uniqueId = `${product._id}-${variant.size || variant.sku || Math.random()}`;
+
+                // Prioritize variant image, fallback to product images
+                const variantImage = variant.image
+                    ? [{ url: variant.image }]
+                    : (product.images || (product.image ? [product.image] : []));
+
+                if (!variantImage || variantImage.length === 0) return;
+
                 flattened.push({
                     ...product,
                     _id: product._id, // Keep original product ID for linking
@@ -92,7 +100,9 @@ const flattenProducts = (products) => {
                     uniqueId: uniqueId,
                     name: `${product.name} - ${variant.size || variant.flavour || ''}`.replace(/ - $/, ''), // Append variant info
                     price: variant.price || product.price,
-                    image: variant.image ? [{ url: variant.image }] : (product.images || product.image),
+                    // IMPORTANT: Override 'images' so ProductItem uses the variant image
+                    images: variantImage,
+                    image: variantImage,
                     // Add specific variant data if needed for filtering
                     variantSize: variant.size,
                     variantFlavour: variant.flavour
@@ -100,10 +110,13 @@ const flattenProducts = (products) => {
             });
         } else {
             // No variants, just push the product itself
+            const prodImage = product.images || (product.image ? [product.image] : []);
+            if (!prodImage || prodImage.length === 0) return;
+
             flattened.push({
                 ...product,
                 uniqueId: product._id,
-                image: product.images || product.image
+                image: prodImage
             });
         }
     });

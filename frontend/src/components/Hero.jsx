@@ -1,7 +1,9 @@
 import React, { useEffect, useState, useRef } from "react";
 import axios from 'axios';
+import { useNavigate } from "react-router";
 
 const Hero = () => {
+    const navigate = useNavigate();
     const [bannerSlides, setBannerSlides] = useState(null);
     const [gridSlides, setGridSlides] = useState([]);
     // default local images fallback
@@ -24,24 +26,36 @@ const Hero = () => {
                         map((src, i) => ({ src, title: hero.title || '', subtitle: hero.subtitle || '', slot: i === 0 ? 'banner' : 'grid' }));
 
                     // ensure at least 1 banner and up to 3 grid slides
-                    const bannerSlides = slides.filter(s => s.slot === 'banner');
-                    const gridSlides = slides.filter(s => s.slot === 'grid');
+                    const bannerSlidesData = slides.filter(s => s.slot === 'banner');
+                    const gridSlidesData = slides.filter(s => s.slot === 'grid');
 
-                    const bannersArr = (bannerSlides.length ? bannerSlides : (slides.length ? [slides[0]] : [])).map(s => ({ src: s.src || '', title: s.title || '', subtitle: s.subtitle || '', cta: 'Explore' }));
-                    if (bannersArr.length === 0) bannersArr.push({ src: defaultImages.mainBanner, title: 'Banana Ice', subtitle: '20mg E-LIQUID - Family', cta: 'SHOP NOW' });
+                    const bannersArr = (bannerSlidesData.length ? bannerSlidesData : (slides.length ? [slides[0]] : [])).map(s => ({
+                        src: s.src || '',
+                        title: s.title || '',
+                        subtitle: s.subtitle || '',
+                        cta: 'Explore',
+                        link: s.link || ''
+                    }));
+                    if (bannersArr.length === 0) bannersArr.push({ src: defaultImages.mainBanner, title: 'Banana Ice', subtitle: '20mg E-LIQUID - Family', cta: 'SHOP NOW', link: '/collection' });
                     setBannerSlides(bannersArr);
-                    setGridSlides(gridSlides.map(s => ({ src: s.src || '', title: s.title || '', subtitle: s.subtitle || '', cta: 'Explore' })));
+                    setGridSlides(gridSlidesData.map(s => ({
+                        src: s.src || '',
+                        title: s.title || '',
+                        subtitle: s.subtitle || '',
+                        cta: 'Explore',
+                        link: s.link || ''
+                    })));
                     return;
                 }
             } catch (err) {
                 // ignore and fallback
             }
             // fallback
-            setBanners([
-                { src: defaultImages.mainBanner, title: 'Banana Ice', subtitle: '20mg E-LIQUID - Family', cta: 'SHOP NOW' },
-                { src: defaultImages.product1, title: 'BC10000', subtitle: 'Double Mango - Premium', cta: 'Explore' },
-                { src: defaultImages.product2, title: 'Sniper', subtitle: 'Peach Ice - Chill', cta: 'Explore' },
-                { src: defaultImages.product3, title: 'Peach Blast', subtitle: 'Refreshing Peach Flavor', cta: 'Explore' }
+            setBannerSlides([
+                { src: defaultImages.mainBanner, title: 'Banana Ice', subtitle: '20mg E-LIQUID - Family', cta: 'SHOP NOW', link: '/collection' },
+                { src: defaultImages.product1, title: 'BC10000', subtitle: 'Double Mango - Premium', cta: 'Explore', link: '/collection' },
+                { src: defaultImages.product2, title: 'Sniper', subtitle: 'Peach Ice - Chill', cta: 'Explore', link: '/collection' },
+                { src: defaultImages.product3, title: 'Peach Blast', subtitle: 'Refreshing Peach Flavor', cta: 'Explore', link: '/collection' }
             ]);
         };
         load();
@@ -53,6 +67,12 @@ const Hero = () => {
 
     const next = () => setCurrent((c) => (c + 1) % (bannerSlides ? bannerSlides.length : 1));
     const prev = () => setCurrent((c) => (c - 1 + (bannerSlides ? bannerSlides.length : 1)) % (bannerSlides ? bannerSlides.length : 1));
+
+    const handleBannerClick = () => {
+        if (!bannerSlides) return;
+        const link = bannerSlides[current].link;
+        if (link) navigate(link);
+    };
 
     useEffect(() => {
         if (timerRef.current) clearInterval(timerRef.current);
@@ -90,7 +110,10 @@ const Hero = () => {
                             <br />
                             <span className="text-xl font-medium">{bannerSlides[current].subtitle}</span>
                         </h1>
-                        <button className="flex items-center gap-2 bg-white text-black px-6 py-3 rounded-md font-semibold hover:bg-gray-100 transition-colors">
+                        <button
+                            onClick={handleBannerClick}
+                            className="flex items-center gap-2 bg-white text-black px-6 py-3 rounded-md font-semibold hover:bg-gray-100 transition-colors"
+                        >
                             {bannerSlides[current].cta}
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -135,9 +158,13 @@ const Hero = () => {
 
             {/* Grid Section */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {gridSlides.slice(0,3).map((b, idx) => (
-                    <div key={idx} className="relative h-[300px] rounded-lg overflow-hidden group cursor-pointer">
-                        <img className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105" src={b.src} alt={b.title || `Grid ${idx+1}`} />
+                {gridSlides.slice(0, 3).map((b, idx) => (
+                    <div
+                        key={idx}
+                        onClick={() => b.link && navigate(b.link)}
+                        className="relative h-[300px] rounded-lg overflow-hidden group cursor-pointer"
+                    >
+                        <img className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105" src={b.src} alt={b.title || `Grid ${idx + 1}`} />
                         <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent flex items-end">
                             <div className="text-white p-6 w-full">
                                 <h3 className="text-2xl font-bold mb-2">{b.title}</h3>

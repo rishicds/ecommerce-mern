@@ -1,0 +1,44 @@
+Starting Debug Round 3
+
+-----------------------------------
+Analyzing Folder: "Abt Hybrid"
+[MISS] Exact match failed. Searching for "Abt"...
+  Found 2 candidates.
+  [GUESS] Selected candidate: "ABT"
+  Checking variants for: "ABT"
+  First Variant Raw: {"size":"ABT White Grape","flavour":"","price":34.99,"cost":0,"quantity":4,"cloverItemId":"5VSG22WY3F8WJ","sku":"6932467620849","showOnPOS":true,"_id":"6948492f0083a59678149837"}
+  Variant Sizes: ABT White Grape, ABT Raspberry Lemon, ABT Mango Ice, ABT Strawberry Kiwi, ABT Coconut Berry, ABT Super Classic, ABT lemon ice, ABT Cherry Lime Ice, ABT Peach Ice, ABT Mint, ABT Honeydew Melon Ice, ABT Guava Ice, ABT apple kiwi ice, ABT Route Beer, ABT Peach Mango Ice, ABT Grape Raspberry, ABT Watermelon Ice, ABT Bluberry Ice, ABT Skittles, ABT Blueberry Raspberry, ABT Blueberry Raspberry Watermelon, ABT Grape Ice, ABT Dragonfruit Strawberry Ice, ABT Canada Dry, ABT Super Sour, ABT Peach Watermelon
+  Variant Flavours: , , , , , , , , , , , , , , , , , , , , , , , , , 
+    File "Apple Kiwi Ice" -> Match? NO
+    File "Blueberry Ice" -> Match? NO
+    File "Blueberry Raspberry Watermelon" -> Match? NO
+    File "Blueberry Raspberry" -> Match? NO
+    File "C D (Canada Dry)" -> Match? NO
+    File "Cherry Lime Ice" -> Match? NO
+    File "Coconut Berry" -> Match? NO
+    File "Dragonfruit Strawberry Ice" -> Match? NO
+    File "Grape Ice" -> Match? NO
+    File "Grape Raspberry" -> Match? NO
+
+-----------------------------------
+Analyzing Folder: "Allo Ultra 25k"
+[MISS] Exact match failed. Searching for "Allo"...
+  Found 7 candidates.
+
+-----------------------------------
+Analyzing Folder: "Abt Twist"
+[MATCH] Exact match found! ID: 694849390083a59678149ae9
+  Checking variants for: "Abt Twist"
+  First Variant Raw: {"size":"Abt Twist Extreme Mint/ Ice Mint","flavour":"","price":36.99,"cost":0,"quantity":4,"cloverItemId":"MVZGQDBPD910J","sku":"6932467669268","showOnPOS":true,"_id":"694849390083a59678149aea"}
+  Variant Sizes: Abt Twist Extreme Mint/ Ice Mint, Abt Twist Grape/Raspberry, Abt Twist Raspberry/Watermelon, Abt Twist Peach Ice/Cherry Ice, Abt Twist DragonFruit/Lychee Ice, Abt Twist Apple Ice/Kiwi Ice, Abt Twist Super Classic/ Cherry Ice, Abt Twist Blueberry Raspberry/ Peach Ice, Abt Twist Strawberry Ice/ Redbull, Abt Twist Blueberry/Raspberry
+  Variant Flavours: , , , , , , , , , 
+    File "Apple Ice Kiwi Ice" -> Match? NO
+    File "Blueberry Raspberry Peach Ice" -> Match? NO
+    File "Blueberry Raspberry" -> Match? NO
+    File "Dragonfruit_ Lychee Ice" -> Match? NO
+    File "Extreme Mint Ice Mint" -> Match? NO
+    File "Grape Raspberry" -> Match? NO
+    File "Peach Berry Ice" -> Match? NO
+    File "Raspberry Watermelon" -> Match? NO
+    File "Strawberry Ice H Ice" -> Match? NO
+    File "Super Classic Cherry Ice" -> Match? NO

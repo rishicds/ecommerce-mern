@@ -90,7 +90,8 @@ const Settings = () => {
               <input value={s.src} onChange={e => updateSlide(s.__idx, 'src', e.target.value)} placeholder="Image URL" className="px-3 py-2 border rounded-md flex-1" />
               <div className="w-64">
                 <input value={s.title} onChange={e => updateSlide(s.__idx, 'title', e.target.value)} placeholder="Title" className="px-3 py-2 border rounded-md w-full mb-2" />
-                <input value={s.subtitle} onChange={e => updateSlide(s.__idx, 'subtitle', e.target.value)} placeholder="Subtitle" className="px-3 py-2 border rounded-md w-full" />
+                <input value={s.subtitle} onChange={e => updateSlide(s.__idx, 'subtitle', e.target.value)} placeholder="Subtitle" className="px-3 py-2 border rounded-md w-full mb-2" />
+                <input value={s.link} onChange={e => updateSlide(s.__idx, 'link', e.target.value)} placeholder="Page Link (e.g. /product/123)" className="px-3 py-2 border rounded-md w-full" />
               </div>
               <div className="flex flex-col gap-2">
                 <button onClick={() => removeSlide(s.__idx)} className="px-2 py-1 bg-red-100 text-red-700 rounded-md">Remove</button>

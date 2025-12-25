@@ -89,15 +89,25 @@ const RelatedProducts = ({ product, selectedSize }) => {
         <Title text1="RELATED" text2="PRODUCTS" />
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 gap-y-6">
-        {related.map(item => (
-          <ProductItem
-            key={item._id}
-            id={item._id}
-            name={item.name}
-            price={item.price}
-            images={item.images || item.image}
-          />
-        ))}
+        {related.map(item => {
+          // Image Fallback Logic
+          const fallbackVariant = item.variants?.find(v => v.image);
+          const displayImages = (item.images && item.images.length > 0)
+            ? item.images
+            : (fallbackVariant ? [{ url: fallbackVariant.image }] : []);
+
+          if (!displayImages || displayImages.length === 0) return null;
+
+          return (
+            <ProductItem
+              key={item._id}
+              id={item._id}
+              name={item.name}
+              price={item.price}
+              images={displayImages}
+            />
+          )
+        })}
       </div>
     </div>
   );

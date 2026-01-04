@@ -10,7 +10,6 @@ const initialState = {
     category: [],
     subCategory: [],
     brand: [],
-    collection: [],
     flavour: [],
     flavourType: [],
     priceRange: [],
@@ -26,15 +25,11 @@ const initialState = {
 
 const reducer = (state, action) => {
     switch (action.type) {
-        case 'SET_COLLECTION':
-            return { ...state, collection: action.payload };
         // Legacy category toggles removed/merged
         case 'TOGGLE_SUBCATEGORY':
             return { ...state, subCategory: toggleItem(state.subCategory, action.payload) };
         case 'TOGGLE_BRAND':
             return { ...state, brand: toggleItem(state.brand, action.payload) };
-        case 'TOGGLE_COLLECTION':
-            return { ...state, collection: toggleItem(state.collection, action.payload) };
         case 'TOGGLE_FLAVOUR':
             return { ...state, flavour: toggleItem(state.flavour, action.payload) };
         case 'TOGGLE_FLAVOURTYPE':
@@ -127,12 +122,11 @@ const flattenProducts = (products) => {
 function Collection() {
     const { products, search, showSearch } = useShop();
     const [state, dispatch] = useReducer(reducer, initialState);
-    const { category, subCategory, brand, collection, flavour, flavourType, priceRange, nicotine, options, type, showFilter, filterProducts, sortOrder, currentPage, itemsPerPage } = state;
+    const { category, subCategory, brand, flavour, flavourType, priceRange, nicotine, options, type, showFilter, filterProducts, sortOrder, currentPage, itemsPerPage } = state;
     const location = useLocation();
 
     const [openSections, setOpenSections] = useState({
         brand: true,
-        collection: true,
         flavour: true,
         flavourType: true,
         price: true,
@@ -193,15 +187,6 @@ function Collection() {
         return Array.from(set).sort();
     }, [memoizedProducts, allowedBrands]);
 
-    const collections = useMemo(() => {
-        const set = new Set();
-        memoizedProducts.forEach(p => {
-            if (p.category) set.add(p.category);
-            if (Array.isArray(p.categories)) p.categories.forEach(c => c && set.add(c));
-        });
-        return Array.from(set).sort();
-    }, [memoizedProducts]);
-
     const flavours = useMemo(() => {
         const set = new Set();
         memoizedProducts.forEach(p => { if (p.flavour) set.add(p.flavour); });
@@ -231,32 +216,10 @@ function Collection() {
         dispatch({ type: 'SET_ITEMS_PER_PAGE', payload: e.target.value });
     };
 
-    // Handle initial category from URL
-    useEffect(() => {
-        const cat = new URLSearchParams(location.search).get('category');
-        if (cat) {
-            dispatch({ type: 'SET_COLLECTION', payload: [cat] });
-        }
-    }, [location.search]);
-
     useEffect(() => {
         const timeout = setTimeout(() => {
             // Flatten products first
             let filtered = flattenProducts(memoizedProducts);
-
-            // filter by collection (category / categories)
-            if (collection && collection.length) {
-                filtered = filtered.filter(item => {
-                    if (!item) return false;
-                    // Check singular 'category'
-                    if (item.category && collection.includes(item.category)) return true;
-                    // Check plural 'categories'
-                    if (Array.isArray(item.categories)) {
-                        if (item.categories.some(c => collection.includes(c))) return true;
-                    }
-                    return false;
-                });
-            }
 
             // filter by brand
             if (brand && brand.length) {
@@ -334,7 +297,7 @@ function Collection() {
         }, 100); // debounce delay
 
         return () => clearTimeout(timeout);
-    }, [memoizedProducts, category, subCategory, brand, collection, flavour, flavourType, priceRange, nicotine, options, type, sortOrder, search, showSearch, activeQuery]);
+    }, [memoizedProducts, category, subCategory, brand, flavour, flavourType, priceRange, nicotine, options, type, sortOrder, search, showSearch, activeQuery]);
 
     return (
         <div className="flex flex-col gap-1 sm:flex-row sm:gap-10 pt-10 border-t-2 border-gray-300">
@@ -371,35 +334,6 @@ function Collection() {
                                 </div>
                             );
                         }) : <div className="text-xs text-gray-500">No brands</div>}
-                    </div>
-                </div>
-
-                {/* Collection */}
-                <div className={`border border-gray-300 pl-5 py-3 mt-4 ${showFilter ? '' : 'hidden'} sm:block`}>
-                    <p
-                        onClick={() => toggleSection('collection')}
-                        className="mb-3 font-medium text-sm flex justify-between items-center cursor-pointer pr-5 select-none"
-                    >
-                        Collection
-                        <img src={assets.dropdown_icon} className={`h-3 transition-transform duration-200 ${openSections.collection ? 'rotate-90' : ''}`} alt="" />
-                    </p>
-                    <div className={`flex flex-col gap-2 text-sm font-light text-gray-700 ${openSections.collection ? '' : 'hidden'}`}>
-                        {collections.length ? collections.map(label => {
-                            const id = `collection-${label}`;
-                            return (
-                                <div key={label} className="flex gap-2 items-center">
-                                    <input
-                                        id={id}
-                                        type="checkbox"
-                                        value={label}
-                                        checked={collection.includes(label)}
-                                        onChange={(e) => handleToggle('TOGGLE_COLLECTION', e.target.value)}
-                                        className="w-3"
-                                    />
-                                    <label htmlFor={id}>{label}</label>
-                                </div>
-                            );
-                        }) : <div className="text-xs text-gray-500">No collections</div>}
                     </div>
                 </div>
 

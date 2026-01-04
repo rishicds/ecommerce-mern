@@ -48,10 +48,10 @@ const updateSettings = async () => {
             slot: 'grid'
         },
         {
-            src: 'https://res.cloudinary.com/dhhs7twmp/image/upload/v1766681624/vapee/products/Elfbar%20GH20000/miami_mint.jpg',
-            title: 'Elfbar GH20000',
-            subtitle: 'Miami Mint - 20000 Puffs',
-            link: '/product/694849300083a59678149876',
+            src: 'https://res.cloudinary.com/dhhs7twmp/image/upload/v1767551170/vapee/products/Fog/fog_dragonfruitstrawberryice_1767551170061_chd8uc.png',
+            title: 'Fog',
+            subtitle: 'Dragon Fruit Strawberry Ice',
+            link: '/product/695aab5e8d9bcf65193c40b7',
             slot: 'grid'
         }
     ];

@@ -36,13 +36,7 @@ const faqData = [
     question: "Do you ship internationally?",
     answer: "Currently, we only ship within the country. We are working on expanding our shipping destinations.",
   },
-  {
-    id: "6",
-    category: "Shipping & Delivery",
-    category: "Shipping & Delivery",
-    question: "How can I track my order?",
-    answer: "Once your order ships, you will receive an email with a tracking number and a link to track your package.",
-  },
+
   {
     id: "7",
     category: "Quality & Regulations",
@@ -124,8 +118,8 @@ const FAQ = ({
                         </span>
                         <div
                           className={`shrink-0 w-8 h-8 flex items-center justify-center transition-all duration-300 ${expandedId === item.id
-                              ? "bg-[#FFB81C] text-gray-900"
-                              : "bg-gray-100 text-gray-400"
+                            ? "bg-[#FFB81C] text-gray-900"
+                            : "bg-gray-100 text-gray-400"
                             }`}
                         >
                           <svg

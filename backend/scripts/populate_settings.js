@@ -48,10 +48,10 @@ const updateSettings = async () => {
             slot: 'grid'
         },
         {
-            src: 'https://res.cloudinary.com/dhhs7twmp/image/upload/v1766681714/vapee/products/Level%20X%20G2%202%2B10/epic_blue_razz.png',
-            title: 'Level X G2',
-            subtitle: 'Epic Blue Razz - Dual Coil',
-            link: '/product/694849320083a5967814991a',
+            src: 'https://res.cloudinary.com/dhhs7twmp/image/upload/v1766681624/vapee/products/Elfbar%20GH20000/miami_mint.jpg',
+            title: 'Elfbar GH20000',
+            subtitle: 'Miami Mint - 20000 Puffs',
+            link: '/product/694849300083a59678149876',
             slot: 'grid'
         }
     ];

@@ -4,13 +4,11 @@ const faqData = [
   {
     id: "1",
     category: "Introduction",
-    category: "Introduction",
     question: "What is your return policy?",
     answer: "We offer a 30-day return policy for unused and unopened products. Please contact support to initiate a return.",
   },
   {
     id: "2",
-    category: "Introduction",
     category: "Introduction",
     question: "Do you offer warranty on devices?",
     answer: "Yes, most of our devices come with a manufacturer's warranty. Check the product page for specific details.",
@@ -18,13 +16,11 @@ const faqData = [
   {
     id: "3",
     category: "Introduction",
-    category: "Introduction",
     question: "Are your products authentic?",
     answer: "Absolutely. We source directly from manufacturers and authorized distributors to ensure 100% authenticity.",
   },
   {
     id: "4",
-    category: "Shipping & Delivery",
     category: "Shipping & Delivery",
     question: "How long does shipping take?",
     answer: "Standard shipping typically takes 3-5 business days. Expedited options are available at checkout.",
@@ -32,21 +28,17 @@ const faqData = [
   {
     id: "5",
     category: "Shipping & Delivery",
-    category: "Shipping & Delivery",
     question: "Do you ship internationally?",
     answer: "Currently, we only ship within the country. We are working on expanding our shipping destinations.",
   },
-
   {
     id: "7",
-    category: "Quality & Regulations",
     category: "Quality & Regulations",
     question: "How do I verify the authenticity of a product?",
     answer: "Many products have a scratch-off code on the packaging that you can verify on the manufacturer's website.",
   },
   {
     id: "8",
-    category: "Quality & Regulations",
     category: "Quality & Regulations",
     question: "What is the legal age to purchase?",
     answer: "You must be of legal smoking age in your jurisdiction to purchase products from our site. Age verification is required.",

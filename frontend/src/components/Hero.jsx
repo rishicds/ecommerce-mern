@@ -41,7 +41,7 @@ const Hero = () => {
             setGridSlides([
                 { src: 'https://res.cloudinary.com/dhhs7twmp/image/upload/v1767550709/vapee/products/Abt%20Hybrid/abthybrid_whitegrape_1767550708670_cpgyf8.png', title: 'Abt Hybrid', subtitle: 'White Grape - Hybrid Nic', link: '/product/695aa9f88d9bcf65193c3d3d' },
                 { src: 'https://res.cloudinary.com/dhhs7twmp/image/upload/v1767551439/vapee/products/Sniper/sniper_sniperpeachice_1767551439874_ul3x2.jpg', title: 'Sniper', subtitle: 'Peach Ice - 2-in-1 Mode', link: '/product/695aac718d9bcf65193c4af3' },
-                { src: 'https://res.cloudinary.com/dhhs7twmp/image/upload/v1766681714/vapee/products/Level%20X%20G2%202%2B10/epic_blue_razz.png', title: 'Level X G2', subtitle: 'Epic Blue Razz - Dual Coil', link: '/product/694849320083a5967814991a' }
+                { src: 'https://res.cloudinary.com/dhhs7twmp/image/upload/v1766681624/vapee/products/Elfbar%20GH20000/miami_mint.jpg', title: 'Elfbar GH20000', subtitle: 'Miami Mint - 20000 Puffs', link: '/product/694849300083a59678149876' }
             ]);
         };
         load();

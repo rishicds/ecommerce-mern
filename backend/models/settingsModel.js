@@ -9,6 +9,7 @@ const SlideSchema = new mongoose.Schema({
   src: { type: String, default: '' },
   title: { type: String, default: '' },
   subtitle: { type: String, default: '' },
+  link: { type: String, default: '' },
   slot: { type: String, enum: ['banner', 'grid'], default: 'banner' }
 }, { _id: false });
 

@@ -16,7 +16,7 @@ import Wishlist from "./pages/Wishlist";
 import Profile from "./pages/Profile";
 import { Routes, Route, Navigate, useLocation } from "react-router";
 import Navbar from "./components/Navbar";
-import CategoryNav from "./components/CategoryNav";
+
 import Footer from "./components/Footer";
 import SearchBar from "./components/SearchBar";
 import CartDrawer from './components/CartDrawer';
@@ -24,7 +24,7 @@ import AgeGate from "./components/AgeGate";
 import { ToastContainer } from 'react-toastify';
 import PublicRoute from "./routes/PublicRoute";
 import PrivateRoute from "./routes/PrivateRoute";
-import RecentBlogs from "./components/recentblog";
+
 import LocationMap from "./components/locationMap";
 import FAQ from "./components/faq";
 import ProductHighlights from "./components/highlights";
@@ -39,12 +39,13 @@ const App = () => {
   const isStandalone = standalonePaths.includes(location.pathname);
   // Product pages should only show FAQ
   const isProductPage = location.pathname.startsWith("/product/");
+  const isCollectionPage = location.pathname === "/collection";
 
   return (
     <div className="px-4 sm:px-[5%] md:px-[7%] lg:px-[9%]">
       <ToastContainer />
       <Navbar />
-      <CategoryNav />
+
       <AgeGate />
       <SearchBar />
       <CartDrawer />
@@ -68,11 +69,8 @@ const App = () => {
         <Route path="/place-order" element={<PrivateRoute><PlaceOrder /></PrivateRoute>} />
         <Route path="/verify" element={<PrivateRoute><Verify /></PrivateRoute>} />
       </Routes>
-      {isProductPage ? (
-        <FAQ />
-      ) : !isStandalone && (
+      {!isStandalone && !isProductPage && !isCollectionPage && (
         <>
-          <RecentBlogs />
           <Highlights />
           <LocationMap />
           <FAQ />

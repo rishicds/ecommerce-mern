@@ -3,8 +3,8 @@ import React from 'react';
 const BLOG_POSTS = [
   {
     id: 1,
-    title: "lorem ipsum dolor sit amet consectetur.",
-    excerpt: "lorem ipsum dolor sit.",
+    title: "Beginner's Guide to Pod Systems",
+    excerpt: "Everything you need to know about getting started with pod systems.",
     date: "November 18, 2025",
     readTime: "6 min read",
     image: "/Triple.jpg",
@@ -12,8 +12,8 @@ const BLOG_POSTS = [
   },
   {
     id: 2,
-    title: "lorem ipsum dolor sit amet consectetur.",
-    excerpt: "lorem ipsum dolor sit.",
+    title: "Geek Bar Pulse Review",
+    excerpt: "An in-depth look at the features and performance of the new Geek Bar Pulse.",
     date: "October 31, 2025",
     readTime: "2 min read",
     image: "/Flavour.png",
@@ -21,8 +21,8 @@ const BLOG_POSTS = [
   },
   {
     id: 3,
-    title: "lorem ipsum dolor sit amet consectetur.",
-    excerpt: "lorem ipsum dolor sit.",
+    title: "Winter Vaping 101",
+    excerpt: "Essential tips for maintaining your vape device during cold weather.",
     date: "October 24, 2025",
     readTime: "2 min read",
     image: "/Bease.png",
@@ -30,8 +30,8 @@ const BLOG_POSTS = [
   },
   {
     id: 4,
-    title: "lorem ipsum dolor sit amet consectetur.",
-    excerpt: "lorem ipsum dolor sit.",
+    title: "Travel-Proof Vaping",
+    excerpt: "A guide to traveling safely with your vaping equipment and liquids.",
     date: "October 17, 2025",
     readTime: "2 min read",
     image: "/Grape.jpg",
@@ -75,11 +75,11 @@ const RecentBlogs = () => {
                 <h3 className="mb-3 text-lg font-bold leading-tight text-gray-900 line-clamp-3">
                   {post.title}
                 </h3>
-                
+
                 <p className="mb-4 text-xs text-gray-600 line-clamp-4 flex-1">
                   {post.excerpt}
                 </p>
-                
+
                 {/* Meta Information */}
                 <div className="flex items-center gap-2 mb-6 text-xs text-gray-500">
                   <span>{post.date}</span>

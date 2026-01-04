@@ -11,10 +11,10 @@ function About() {
             <div className='my-10 flex flex-col md:flex-row gap-16'>
                 <img className='w-full md:max-w-[450px]' src='/Grape.jpg' />
                 <div className='flex flex-col justify-center gap-6 md:w-2/4 text-gray-600'>
-                    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
-                    <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium.</p>
+                    <p>Welcome to our store, your premier destination for high-quality vaping products. We are passionate about providing our customers with the best selection of devices, e-liquids, and accessories from top brands in the industry. Our journey began with a simple mission: to offer a curated experience for both beginners and seasoned vapers.</p>
+                    <p>We believe in quality, transparency, and exceptional service. Every product on our shelves is carefully selected to ensure it meets our rigorous standards. Whether you are looking for the latest pod system or a classic flavor, we are here to help you find exactly what you need.</p>
                     <b className='text-gray-800'>Our Mission</b>
-                    <p>Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit.</p>
+                    <p>Our mission is to empower adult smokers tailored alternatives. We strive to educate our community, promote responsible usage, and foster a supportive environment where everyone can find their perfect vape.</p>
                 </div>
             </div>
             <div className='text-xl py-4'>
@@ -23,18 +23,18 @@ function About() {
             <div className='flex flex-col md:flex-row text-sm mb-20'>
                 <div className='border px-10 md:px-16 py-8 sm:py-20 flex flex-col gap-5 border-gray-300'>
                     <b>Quality Assurance:</b>
-                    <p className='text-gray-600'>Lorem ipsum dolor sit, amet consectetur adipisicing elit. Recusandae est veritatis sed!.</p>
+                    <p className='text-gray-600'>We source strictly from authorized distributors and manufacturers to guarantee 100% authentic products.</p>
                 </div>
                 <div className='border px-10 md:px-16 py-8 sm:py-20 flex flex-col gap-5 border-gray-300'>
                     <b>Convenience:</b>
-                    <p className='text-gray-600'>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+                    <p className='text-gray-600'>Shop online with ease and get your favorite products delivered straight to your door with our fast shipping.</p>
                 </div>
                 <div className='border px-10 md:px-16 py-8 sm:py-20 flex flex-col gap-5 border-gray-300'>
                     <b>Exceptional Customer Service:</b>
-                    <p className='text-gray-600'>Lorem ipsum dolor sit amet consectetur adipisicing elit. Dicta, eos perspiciatis! Veniam.</p>
+                    <p className='text-gray-600'>Our knowledgeable support team is always ready to assist you with any questions or concerns you may have.</p>
                 </div>
             </div>
-           
+
         </div>
     );
 }

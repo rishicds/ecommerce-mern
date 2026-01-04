@@ -48,6 +48,7 @@ app.use(cors({
 app.use(cookieParser())
 connectDB();
 connectCloudinary();
+app.use(express.static('public'));
 
 // API endpoints
 app.use('/api/user', userRouter);
@@ -66,7 +67,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);  
+const __dirname = path.dirname(__filename);
 
 // Serve Admin Panel
 app.use('/admin', express.static(path.join(__dirname, '../admin/dist')));

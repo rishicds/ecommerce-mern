@@ -190,7 +190,8 @@ function Product() {
                     {/* Waitlist handled below together with Add to Cart for proper alignment */}
 
                     {/* Size Selection - only show when variants exist */}
-                    {productDetails.variants && productDetails.variants.length > 0 && (
+                    {/* Size Selection or Sibling Products - showing variants */}
+                    {(productDetails.variants && productDetails.variants.length > 0) ? (
                         <div className='flex flex-col gap-4 my-8'>
                             <p className="font-semibold">Select Flavour / Variant</p>
                             <div className='flex gap-3 flex-wrap'>
@@ -207,23 +208,68 @@ function Product() {
                                                     setSelectedImage({ url: variant.image, _id: `var-${index}` });
                                                 }
                                             }}
-                                            className={`relative border rounded-lg p-2 min-w-[80px] flex flex-col items-center gap-2 cursor-pointer transition-all ${isSelected ? 'border-orange-500 bg-orange-50 ring-1 ring-orange-500' : 'border-gray-200 hover:border-gray-300'}`}
+                                            className={`relative border rounded-lg p-2 min-w-[80px] w-24 flex flex-col items-center gap-2 cursor-pointer transition-all ${isSelected ? 'border-[#FFB81C] bg-orange-50 ring-1 ring-[#FFB81C]' : 'border-gray-200 hover:border-gray-300'}`}
                                         >
                                             {variant.image && (
-                                                <div className="w-12 h-12 rounded overflow-hidden bg-gray-100">
-                                                    <img src={variant.image} alt={variantLabel} className="w-full h-full object-cover" />
+                                                <div className="w-full h-20 rounded overflow-hidden bg-white flex items-center justify-center p-1">
+                                                    <img src={variant.image} alt={variantLabel} className="w-full h-full object-contain" />
                                                 </div>
                                             )}
-                                            <div className="text-center">
-                                                <span className={`block text-sm font-medium ${isSelected ? 'text-orange-700' : 'text-gray-700'}`}>{variant.flavour || variant.size}</span>
-                                                {variant.flavour && variant.size && <span className="block text-xs text-gray-500">{variant.size}</span>}
-                                                <span className="block text-xs font-semibold mt-1">{currency}{variant.price}</span>
+                                            <div className="text-center w-full">
+                                                <span className={`block text-xs font-medium leading-tight line-clamp-2 ${isSelected ? 'text-black' : 'text-gray-700'}`}>{variant.flavour || variant.size}</span>
+                                                {variant.flavour && variant.size && <span className="block text-[10px] text-gray-500 mt-0.5">{variant.size}</span>}
+                                                <span className="block text-xs font-bold mt-1 text-black">{currency}{variant.price}</span>
                                             </div>
                                         </button>
                                     );
                                 })}
                             </div>
                         </div>
+                    ) : (
+                        // Fallback: Check for other products with the same brand (Siblings) to mimic variants
+                        products.filter(p => p.brand === productDetails.brand && p.brand !== undefined && p.brand !== '').length > 1 && (
+                            <div className='flex flex-col gap-4 my-8'>
+                                <p className="font-semibold">Select Flavour / Variant</p>
+                                <div className='flex gap-3 flex-wrap'>
+                                    {products
+                                        .filter(p => p.brand === productDetails.brand)
+                                        .filter(sibling => {
+                                            const brandRegex = new RegExp(`^${productDetails.brand}[\\s-]*`, 'i');
+                                            const name = sibling.name.replace(brandRegex, '').trim();
+                                            return name !== '' && name.toLowerCase() !== 'original';
+                                        })
+                                        .map((sibling) => {
+                                            const isSelected = sibling._id === productDetails._id;
+                                            // Extract flavor name: remove Brand from Name
+                                            const brandRegex = new RegExp(`^${productDetails.brand}[\\s-]*`, 'i');
+                                            let cleanName = sibling.name.replace(brandRegex, '').trim();
+
+                                            // Determine Image: Sibling first image or fallback
+                                            const thumb = (sibling.images && sibling.images.length > 0) ? sibling.images[0].url : '';
+
+                                            return (
+                                                <button
+                                                    key={sibling._id}
+                                                    onClick={() => navigate(`/product/${sibling._id}`)}
+                                                    className={`relative border rounded-lg p-2 min-w-[80px] w-28 flex flex-col items-center gap-2 cursor-pointer transition-all ${isSelected ? 'border-[#FFB81C] bg-orange-50 ring-1 ring-[#FFB81C]' : 'border-gray-200 hover:border-gray-300'}`}
+                                                >
+                                                    {thumb ? (
+                                                        <div className="w-full h-24 rounded overflow-hidden bg-white flex items-center justify-center p-1">
+                                                            <img src={thumb} alt={cleanName} className="w-full h-full object-contain" />
+                                                        </div>
+                                                    ) : (
+                                                        <div className="w-full h-24 rounded bg-gray-100 flex items-center justify-center text-xs text-gray-400">No Img</div>
+                                                    )}
+                                                    <div className="text-center w-full">
+                                                        <span className={`block text-xs font-bold leading-tight line-clamp-2 mb-1 ${isSelected ? 'text-black' : 'text-gray-700'}`}>{cleanName}</span>
+                                                        <span className="block text-xs font-medium text-gray-900">{currency}{sibling.price}</span>
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
+                                </div>
+                            </div>
+                        )
                     )}
 
                     {/* Button row: Remind + Add to cart (aligned) */}

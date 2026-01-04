@@ -4,50 +4,58 @@ const faqData = [
   {
     id: "1",
     category: "Introduction",
-    question: "lorem ipsum dolor sit amet consectetur.?",
-    answer: "lorem ipsum dolor sit.",
+    category: "Introduction",
+    question: "What is your return policy?",
+    answer: "We offer a 30-day return policy for unused and unopened products. Please contact support to initiate a return.",
   },
   {
     id: "2",
     category: "Introduction",
-    question: "lorem ipsum dolor sit amet consectetur.?",
-    answer: "lorem ipsum dolor sit.",
+    category: "Introduction",
+    question: "Do you offer warranty on devices?",
+    answer: "Yes, most of our devices come with a manufacturer's warranty. Check the product page for specific details.",
   },
   {
     id: "3",
     category: "Introduction",
-    question: "lorem ipsum dolor sit amet consectetur.?",
-    answer: "lorem ipsum dolor sit.",
+    category: "Introduction",
+    question: "Are your products authentic?",
+    answer: "Absolutely. We source directly from manufacturers and authorized distributors to ensure 100% authenticity.",
   },
   {
     id: "4",
     category: "Shipping & Delivery",
-    question: "lorem ipsum dolor sit amet consectetur.?",
-    answer: "lorem ipsum dolor sit.",
+    category: "Shipping & Delivery",
+    question: "How long does shipping take?",
+    answer: "Standard shipping typically takes 3-5 business days. Expedited options are available at checkout.",
   },
   {
     id: "5",
     category: "Shipping & Delivery",
-    question: "lorem ipsum dolor sit amet consectetur.?",
-    answer: "lorem ipsum dolor sit.",
+    category: "Shipping & Delivery",
+    question: "Do you ship internationally?",
+    answer: "Currently, we only ship within the country. We are working on expanding our shipping destinations.",
   },
   {
     id: "6",
     category: "Shipping & Delivery",
-    question: "lorem ipsum dolor sit amet consectetur.?",
-    answer: "lorem ipsum dolor sit.",
+    category: "Shipping & Delivery",
+    question: "How can I track my order?",
+    answer: "Once your order ships, you will receive an email with a tracking number and a link to track your package.",
   },
   {
     id: "7",
     category: "Quality & Regulations",
-    question: "lorem ipsum dolor sit amet consectetur.?",
-    answer: "lorem ipsum dolor sit.",
+    category: "Quality & Regulations",
+    question: "How do I verify the authenticity of a product?",
+    answer: "Many products have a scratch-off code on the packaging that you can verify on the manufacturer's website.",
   },
   {
     id: "8",
     category: "Quality & Regulations",
-    question: "lorem ipsum dolor sit amet consectetur.?",
-    answer: "lorem ipsum dolor sit.",
+    category: "Quality & Regulations",
+    question: "What is the legal age to purchase?",
+    answer: "You must be of legal smoking age in your jurisdiction to purchase products from our site. Age verification is required.",
   },
 ];
 
@@ -115,16 +123,14 @@ const FAQ = ({
                           {item.question}
                         </span>
                         <div
-                          className={`shrink-0 w-8 h-8 flex items-center justify-center transition-all duration-300 ${
-                            expandedId === item.id
+                          className={`shrink-0 w-8 h-8 flex items-center justify-center transition-all duration-300 ${expandedId === item.id
                               ? "bg-[#FFB81C] text-gray-900"
                               : "bg-gray-100 text-gray-400"
-                          }`}
+                            }`}
                         >
                           <svg
-                            className={`w-4 h-4 transition-transform duration-300 ${
-                              expandedId === item.id ? "rotate-180" : ""
-                            }`}
+                            className={`w-4 h-4 transition-transform duration-300 ${expandedId === item.id ? "rotate-180" : ""
+                              }`}
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -141,9 +147,8 @@ const FAQ = ({
 
                       {/* Answer - Collapsible */}
                       <div
-                        className={`overflow-hidden transition-all duration-300 ${
-                          expandedId === item.id ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
-                        }`}
+                        className={`overflow-hidden transition-all duration-300 ${expandedId === item.id ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+                          }`}
                       >
                         <div className="p-5 bg-gray-50 border-t border-gray-200">
                           <p className="text-gray-600 leading-relaxed text-sm font-light">

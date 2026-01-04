@@ -5,12 +5,12 @@ import { Link } from "react-router";
 const Highlights = () => {
     // You can import your images and replace these placeholder paths
     const IMAGES = {
-        banner1: import.meta.env.VITE_BACKEND_URL + "/products/Allo Ultra 25k/R26 -GRAPE ICE.png",
-        banner2: import.meta.env.VITE_BACKEND_URL + "/products/Elfbar BC10000/BC10000-Blue-Razz-Ice.jpg",
-        banner3: import.meta.env.VITE_BACKEND_URL + "/products/Sniper/Sniper Peach Ice.jpeg",
-        collection1: import.meta.env.VITE_BACKEND_URL + "/products/Elfbar AF 12000/Tangy Blue Razz.jpg",
-        collection2: import.meta.env.VITE_BACKEND_URL + "/products/Sniper/Sniper Watermelon Ice.jpeg",
-        collection3: import.meta.env.VITE_BACKEND_URL + "/products/Gcore 30ml/Mint 20mg.png.webp",
+        banner1: "https://res.cloudinary.com/dhhs7twmp/image/upload/v1767550894/vapee/products/Allo%20Ultra%2025k/alloultra25k_grapeice_1767550891888_mwaaai.png",
+        banner2: "https://res.cloudinary.com/dhhs7twmp/image/upload/v1767550961/vapee/products/Elfbar%20BC10000/elfbarbc10000_bluerazzice_1767550961577_jghaj.jpg",
+        banner3: "https://res.cloudinary.com/dhhs7twmp/image/upload/v1767551439/vapee/products/Sniper/sniper_sniperpeachice_1767551439874_ul3x2.jpg",
+        collection1: "https://res.cloudinary.com/dhhs7twmp/image/upload/v1767550955/vapee/products/Elfbar%20AF%2012000/elfbaraf12000_tangybluerazz_1767550955712_lr0vlq.jpg",
+        collection2: "https://res.cloudinary.com/dhhs7twmp/image/upload/v1767551442/vapee/products/Sniper/sniper_sniperwatermelonice_1767551441978_7jvgex.jpg",
+        collection3: "https://res.cloudinary.com/dhhs7twmp/image/upload/v1767551206/vapee/products/Gcore%2030ml/gcore30ml_blueberryice20mgjpg_1767551206534_ly815f.webp",
         exterior: "/Triple.jpg",
     };
 

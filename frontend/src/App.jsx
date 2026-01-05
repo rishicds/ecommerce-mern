@@ -3,16 +3,16 @@ import Home from "./pages/Home";
 import Collection from "./pages/Collection";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
-import RefundPolicy from "./pages/RefundPolicy";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
 import Product from "./pages/Product";
 import Cart from "./pages/Cart";
 import Login from "./pages/Login";
 import Orders from "./pages/Orders";
 import PlaceOrder from "./pages/PlaceOrder";
-import ShippingInfo from "./pages/ShippingInfo";
 import Notifications from "./pages/Notifications";
 import Verify from "./pages/Verify";
-import Wishlist from "./pages/Wishlist";
+
 import Profile from "./pages/Profile";
 import { Routes, Route, Navigate, useLocation } from "react-router";
 import Navbar from "./components/Navbar";
@@ -35,7 +35,7 @@ import Chatbot from "./components/Chatbot";
 const App = () => {
   const location = useLocation();
   // Pages that should not render the extra sections below the routes
-  const standalonePaths = ["/refund-policy", "/notifications", "/profile"];
+  const standalonePaths = ["/privacy-policy", "/terms-of-service", "/notifications", "/profile"];
   const isStandalone = standalonePaths.includes(location.pathname);
   // Product pages should only show FAQ
   const isProductPage = location.pathname.startsWith("/product/");
@@ -55,14 +55,13 @@ const App = () => {
         <Route path="/collection" element={<Collection />} />
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
-        <Route path="/shipping-info" element={<ShippingInfo />} />
-        <Route path="/refund-policy" element={<RefundPolicy />} />
-        <Route path="/RefundPolicy" element={<Navigate to="/refund-policy" replace />} />
-        <Route path="/Refundpolicy" element={<Navigate to="/refund-policy" replace />} />
-        <Route path="/refundpolicy" element={<Navigate to="/refund-policy" replace />} />
+        
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/terms-of-service" element={<TermsOfService />} />
+        
         <Route path="/product/:productId" element={<Product />} />
         <Route path="/cart" element={<Cart />} />
-        <Route path="/wishlist" element={<PrivateRoute><Wishlist /></PrivateRoute>} />
+        
         <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
         <Route path="/notifications" element={<PrivateRoute><Notifications /></PrivateRoute>} />
         <Route path="/orders" element={<PrivateRoute><Orders /></PrivateRoute>} />

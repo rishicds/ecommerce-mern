@@ -3,45 +3,66 @@ import React, { useState } from "react";
 const faqData = [
   {
     id: "1",
-    category: "Introduction",
-    question: "What is your return policy?",
-    answer: "We offer a 30-day return policy for unused and unopened products. Please contact support to initiate a return.",
+    category: "Age & Legal",
+    question: "Who can purchase vaping products from Knight St. Vape Shop?",
+    answer:
+      "You must be of legal age to purchase vaping products in your province or territory. By using our website and placing an order, you confirm that you meet the legal age requirement. We reserve the right to request age verification and to cancel any order that does not comply with Canadian or provincial laws.",
   },
   {
     id: "2",
-    category: "Introduction",
-    question: "Do you offer warranty on devices?",
-    answer: "Yes, most of our devices come with a manufacturer's warranty. Check the product page for specific details.",
+    category: "Shipping & Delivery",
+    question: "Do you ship across Canada?",
+    answer:
+      "Yes, we ship within Canada only, subject to provincial and territorial regulations. Some products may not be available for delivery to certain locations due to local laws.",
   },
   {
     id: "3",
-    category: "Introduction",
-    question: "Are your products authentic?",
-    answer: "Absolutely. We source directly from manufacturers and authorized distributors to ensure 100% authenticity.",
+    category: "Shipping & Delivery",
+    question: "How long does shipping take?",
+    answer:
+      "Orders are typically processed within 1–3 business days in BC. Delivery times vary depending on your location and the shipping carrier selected at checkout. Shipping delays may occur due to carrier issues, weather conditions, or regulatory inspections.",
   },
   {
     id: "4",
-    category: "Shipping & Delivery",
-    question: "How long does shipping take?",
-    answer: "Standard shipping typically takes 3-5 business days. Expedited options are available at checkout.",
+    category: "Payments",
+    question: "What payment methods do you accept?",
+    answer:
+      "We accept major credit cards and other payment options made available through our secure checkout provider. All payments are processed using encrypted and secure systems.",
   },
   {
     id: "5",
-    category: "Shipping & Delivery",
-    question: "Do you ship internationally?",
-    answer: "Currently, we only ship within the country. We are working on expanding our shipping destinations.",
+    category: "Returns & Refunds",
+    question: "What is your return and refund policy?",
+    answer:
+      "Due to health, safety, and regulatory reasons, all vape products, e-liquids, coils, pods, and disposable devices are final sale. If an item arrives defective or incorrect, please contact us within 48 hours of delivery with your order number and clear photos for review.",
+  },
+  {
+    id: "6",
+    category: "Returns & Refunds",
+    question: "What if my order is damaged or incorrect?",
+    answer:
+      "If your order arrives damaged or incorrect, contact us immediately: return@knightstvapeshop.ca or 604-559-7833. Include your order number and photos so we can assist you as quickly as possible.",
   },
   {
     id: "7",
-    category: "Quality & Regulations",
-    question: "How do I verify the authenticity of a product?",
-    answer: "Many products have a scratch-off code on the packaging that you can verify on the manufacturer's website.",
+    category: "Products",
+    question: "Are your products authentic?",
+    answer:
+      "Yes. We only sell authentic products sourced from authorized manufacturers and distributors.",
   },
   {
     id: "8",
-    category: "Quality & Regulations",
-    question: "What is the legal age to purchase?",
-    answer: "You must be of legal smoking age in your jurisdiction to purchase products from our site. Age verification is required.",
+    category: "Products",
+    question: "Do you sell nicotine-free products?",
+    answer:
+      "Yes, we carry both nicotine and nicotine-free products, where permitted by law.",
+  },
+  {
+    id: "9",
+    category: "Contact",
+    question: "How can I contact Knight St. Vape Shop?",
+    answer:
+      "Address: 1365 East 41st Avenue, Vancouver, BC | Phone: 604-559-7833 | Email: knightstvapeshop@gmail.com",
   },
 ];
 

@@ -34,6 +34,9 @@ import Chatbot from "./components/Chatbot";
 
 const App = () => {
   const location = useLocation();
+  React.useEffect(() => {
+    try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (e) { window.scrollTo(0, 0); }
+  }, [location.pathname]);
   // Pages that should not render the extra sections below the routes
   const standalonePaths = ["/privacy-policy", "/terms-of-service", "/notifications", "/profile"];
   const isStandalone = standalonePaths.includes(location.pathname);

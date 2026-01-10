@@ -111,9 +111,11 @@ const uploadImages = async () => {
                     product.images = [{ url: imageUrl, public_id: '' }];
                     changed = true;
                 } else {
-                    const hasImg = product.images.some(img => img.url === imageUrl);
-                    if (!hasImg) {
-                        product.images = [{ url: imageUrl, public_id: '' }, ...product.images];
+                    // For Rivo Bar and others, we usually only want one main image per synced product
+                    // If you want to keep multiple, you'd check for similarity, 
+                    // but most users want the latest sync to define the product image.
+                    if (product.images[0].url !== imageUrl) {
+                        product.images = [{ url: imageUrl, public_id: '' }];
                         changed = true;
                     }
                 }

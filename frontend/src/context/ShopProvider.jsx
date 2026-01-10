@@ -43,7 +43,11 @@ const ShopProvider = ({ children }) => {
                 }
             });
             if (res.data.success) {
-                setProducts(prev => [...prev, ...res.data.products]);
+                setProducts(prev => {
+                    const existingIds = new Set(prev.map(p => String(p._id)));
+                    const newProducts = res.data.products.filter(p => !existingIds.has(String(p._id)));
+                    return [...prev, ...newProducts];
+                });
                 setNextCursor(res.data.nextCursor);
                 setHasMore(res.data.hasMore);
             } else {

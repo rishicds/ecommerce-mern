@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
+import CachedImage from "./CachedImage";
 import { useShop } from '../context/ShopContex';
 import { Link } from "react-router";
 
@@ -12,6 +13,7 @@ const ProductItem = ({ id, images, name, price, highlight = '' }) => {
 
     // Defensive image selection: prefer images[0].url, fall back to empty string
     const imageUrl = images && images.length ? (images[0].url || '') : '';
+    const [imageError, setImageError] = useState(false);
 
     const handleWishlistClick = (e) => {
         e.preventDefault();
@@ -53,12 +55,18 @@ const ProductItem = ({ id, images, name, price, highlight = '' }) => {
     return (
         <Link className="text-gray-700 cursor-pointer relative group" to={`/product/${id}`}>
             <div className="overflow-hidden relative">
-                <img
-                    className="hover:scale-110 transition ease-in-out"
-                    src={imageUrl}
-                    alt={name || 'product'}
-                    onError={(e) => { e.currentTarget.src = ''; }}
-                />
+                {imageUrl && !imageError ? (
+                    <CachedImage
+                        className="hover:scale-110 transition ease-in-out w-full h-auto"
+                        src={imageUrl}
+                        alt={name || 'product'}
+                        onError={() => setImageError(true)}
+                    />
+                ) : (
+                    <div className="w-full h-64 bg-gray-100 flex items-center justify-center text-gray-400 text-xs">
+                        No Image
+                    </div>
+                )}
                 {/* Wishlist button */}
                 <button
                     onClick={handleWishlistClick}

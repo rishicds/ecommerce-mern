@@ -7,6 +7,7 @@ import { toast } from 'react-toastify';
 import axios from 'axios';
 import { assets } from '../assets/frontend_assets/assets';
 import RelatedProducts from '../components/RelatedProducts';
+import CachedImage from '../components/CachedImage';
 
 function Product() {
     const { productId } = useParams();
@@ -155,7 +156,7 @@ function Product() {
                 <div className='flex-1 flex flex-col-reverse gap-3 sm:flex-row'>
                     <div className='flex sm:flex-col overflow-x-auto sm:overflow-y-scroll justify-between sm:justify-normal sm:w-[18.7%] w-full'>
                         {(productDetails.images || []).map((img) => (
-                            <img
+                            <CachedImage
                                 onClick={() => setSelectedImage(img)}
                                 src={img.url}
                                 key={img._id || img.public_id || img.url}
@@ -165,7 +166,13 @@ function Product() {
                         ))}
                     </div>
                     <div className='w-full sm:w-[80%]'>
-                        <img src={selectedImage?.url} alt="Selected product" className='w-full h-auto' />
+                        {selectedImage ? (
+                            <CachedImage src={selectedImage.url} alt="Selected product" className='w-full h-auto' />
+                        ) : (
+                            <div className="w-full h-96 bg-gray-100 flex items-center justify-center text-gray-400">
+                                No Image Available
+                            </div>
+                        )}
                     </div>
                 </div>
 

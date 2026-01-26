@@ -91,7 +91,8 @@ const flattenProducts = (products) => {
                     ? [{ url: variant.image }]
                     : (product.images || (product.image ? [product.image] : []));
 
-                if (!variantImage || variantImage.length === 0) return;
+                // Image check removed to allow products without images
+                // if (!variantImage || variantImage.length === 0) return;
 
                 flattened.push({
                     ...product,
@@ -110,8 +111,9 @@ const flattenProducts = (products) => {
             });
         } else {
             // No variants, just push the product itself
-            const prodImage = product.images || (product.image ? [product.image] : []);
-            if (!prodImage || prodImage.length === 0) return;
+            // Image check removed to allow products without images
+            // const prodImage = product.images || (product.image ? [product.image] : []);
+            // if (!prodImage || prodImage.length === 0) return;
 
             flattened.push({
                 ...product,

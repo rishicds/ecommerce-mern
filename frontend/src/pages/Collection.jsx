@@ -106,9 +106,7 @@ const flattenProducts = (products) => {
             });
         } else {
             // No variants, just push the product itself
-            // Image check removed to allow products without images
-            // const prodImage = product.images || (product.image ? [product.image] : []);
-            // if (!prodImage || prodImage.length === 0) return;
+            const prodImage = product.images || (product.image ? [product.image] : []);
 
             flattened.push({
                 ...product,

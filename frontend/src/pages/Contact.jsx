@@ -1,7 +1,7 @@
 import React from 'react';
 import Title from '../components/Title';
 import { assets } from '../assets/frontend_assets/assets';
-import NewsletterBox from '../components/NewsletterBox';
+// Newsletter box removed per request
 
 function Contact() {
     return (
@@ -20,10 +20,10 @@ function Contact() {
                     <p className='text-gray-500'>Knightstvapeshop@gmail.com</p>
                     <p className='font-semibold text-xl text-gray-600'></p>
                     <p className='text-gray-500'></p>
-                    <button className='border border-black px-8 py-4 text-sm hover:bg-black hover:text-white transition-all duration-500'>Reach Out</button>
+                    <a href="https://mail.google.com/mail/?view=cm&fs=1&tf=1&to=Knightstvapeshop@gmail.com" target="_blank" rel="noopener noreferrer" className='border border-black px-8 py-4 text-sm hover:bg-black hover:text-white transition-all duration-500 inline-block'>Reach Out</a>
                 </div>
             </div>
-            <NewsletterBox />
+            {/* Newsletter removed */}
         </div>
     );
 }

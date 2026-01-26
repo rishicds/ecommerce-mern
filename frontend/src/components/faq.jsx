@@ -3,51 +3,66 @@ import React, { useState } from "react";
 const faqData = [
   {
     id: "1",
-    category: "Introduction",
-    question: "lorem ipsum dolor sit amet consectetur.?",
-    answer: "lorem ipsum dolor sit.",
+    category: "Age & Legal",
+    question: "Who can purchase vaping products from Knight St. Vape Shop?",
+    answer:
+      "You must be of legal age to purchase vaping products in your province or territory. By using our website and placing an order, you confirm that you meet the legal age requirement. We reserve the right to request age verification and to cancel any order that does not comply with Canadian or provincial laws.",
   },
   {
     id: "2",
-    category: "Introduction",
-    question: "lorem ipsum dolor sit amet consectetur.?",
-    answer: "lorem ipsum dolor sit.",
+    category: "Shipping & Delivery",
+    question: "Do you ship across Canada?",
+    answer:
+      "Yes, we ship within Canada only, subject to provincial and territorial regulations. Some products may not be available for delivery to certain locations due to local laws.",
   },
   {
     id: "3",
-    category: "Introduction",
-    question: "lorem ipsum dolor sit amet consectetur.?",
-    answer: "lorem ipsum dolor sit.",
+    category: "Shipping & Delivery",
+    question: "How long does shipping take?",
+    answer:
+      "Orders are typically processed within 1–3 business days in BC. Delivery times vary depending on your location and the shipping carrier selected at checkout. Shipping delays may occur due to carrier issues, weather conditions, or regulatory inspections.",
   },
   {
     id: "4",
-    category: "Shipping & Delivery",
-    question: "lorem ipsum dolor sit amet consectetur.?",
-    answer: "lorem ipsum dolor sit.",
+    category: "Payments",
+    question: "What payment methods do you accept?",
+    answer:
+      "We accept major credit cards and other payment options made available through our secure checkout provider. All payments are processed using encrypted and secure systems.",
   },
   {
     id: "5",
-    category: "Shipping & Delivery",
-    question: "lorem ipsum dolor sit amet consectetur.?",
-    answer: "lorem ipsum dolor sit.",
+    category: "Returns & Refunds",
+    question: "What is your return and refund policy?",
+    answer:
+      "Due to health, safety, and regulatory reasons, all vape products, e-liquids, coils, pods, and disposable devices are final sale. If an item arrives defective or incorrect, please contact us within 48 hours of delivery with your order number and clear photos for review.",
   },
   {
     id: "6",
-    category: "Shipping & Delivery",
-    question: "lorem ipsum dolor sit amet consectetur.?",
-    answer: "lorem ipsum dolor sit.",
+    category: "Returns & Refunds",
+    question: "What if my order is damaged or incorrect?",
+    answer:
+      "If your order arrives damaged or incorrect, contact us immediately: return@knightstvapeshop.ca or 604-559-7833. Include your order number and photos so we can assist you as quickly as possible.",
   },
   {
     id: "7",
-    category: "Quality & Regulations",
-    question: "lorem ipsum dolor sit amet consectetur.?",
-    answer: "lorem ipsum dolor sit.",
+    category: "Products",
+    question: "Are your products authentic?",
+    answer:
+      "Yes. We only sell authentic products sourced from authorized manufacturers and distributors.",
   },
   {
     id: "8",
-    category: "Quality & Regulations",
-    question: "lorem ipsum dolor sit amet consectetur.?",
-    answer: "lorem ipsum dolor sit.",
+    category: "Products",
+    question: "Do you sell nicotine-free products?",
+    answer:
+      "Yes, we carry both nicotine and nicotine-free products, where permitted by law.",
+  },
+  {
+    id: "9",
+    category: "Contact",
+    question: "How can I contact Knight St. Vape Shop?",
+    answer:
+      "Address: 1365 East 41st Avenue, Vancouver, BC | Phone: 604-559-7833 | Email: knightstvapeshop@gmail.com",
   },
 ];
 
@@ -115,16 +130,14 @@ const FAQ = ({
                           {item.question}
                         </span>
                         <div
-                          className={`shrink-0 w-8 h-8 flex items-center justify-center transition-all duration-300 ${
-                            expandedId === item.id
-                              ? "bg-[#FFB81C] text-gray-900"
-                              : "bg-gray-100 text-gray-400"
-                          }`}
+                          className={`shrink-0 w-8 h-8 flex items-center justify-center transition-all duration-300 ${expandedId === item.id
+                            ? "bg-[#FFB81C] text-gray-900"
+                            : "bg-gray-100 text-gray-400"
+                            }`}
                         >
                           <svg
-                            className={`w-4 h-4 transition-transform duration-300 ${
-                              expandedId === item.id ? "rotate-180" : ""
-                            }`}
+                            className={`w-4 h-4 transition-transform duration-300 ${expandedId === item.id ? "rotate-180" : ""
+                              }`}
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -141,9 +154,8 @@ const FAQ = ({
 
                       {/* Answer - Collapsible */}
                       <div
-                        className={`overflow-hidden transition-all duration-300 ${
-                          expandedId === item.id ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
-                        }`}
+                        className={`overflow-hidden transition-all duration-300 ${expandedId === item.id ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+                          }`}
                       >
                         <div className="p-5 bg-gray-50 border-t border-gray-200">
                           <p className="text-gray-600 leading-relaxed text-sm font-light">

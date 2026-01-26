@@ -1,4 +1,4 @@
-import React, { useEffect, useReducer, useMemo } from 'react';
+import React, { useEffect, useReducer, useMemo, useState } from 'react';
 import { useLocation } from 'react-router';
 import { useShop } from '../context/ShopContex';
 import { assets } from '../assets/frontend_assets/assets';
@@ -10,7 +10,6 @@ const initialState = {
     category: [],
     subCategory: [],
     brand: [],
-    collection: [],
     flavour: [],
     flavourType: [],
     priceRange: [],
@@ -21,20 +20,16 @@ const initialState = {
     filterProducts: [],
     sortOrder: 'relevant',
     currentPage: 1,
-    itemsPerPage: 20, // Add itemsPerPage state
+    itemsPerPage: 100, // Add itemsPerPage state
 };
 
 const reducer = (state, action) => {
     switch (action.type) {
-        case 'SET_COLLECTION':
-            return { ...state, collection: action.payload };
         // Legacy category toggles removed/merged
         case 'TOGGLE_SUBCATEGORY':
             return { ...state, subCategory: toggleItem(state.subCategory, action.payload) };
         case 'TOGGLE_BRAND':
             return { ...state, brand: toggleItem(state.brand, action.payload) };
-        case 'TOGGLE_COLLECTION':
-            return { ...state, collection: toggleItem(state.collection, action.payload) };
         case 'TOGGLE_FLAVOUR':
             return { ...state, flavour: toggleItem(state.flavour, action.payload) };
         case 'TOGGLE_FLAVOURTYPE':
@@ -129,8 +124,22 @@ const flattenProducts = (products) => {
 function Collection() {
     const { products, search, showSearch } = useShop();
     const [state, dispatch] = useReducer(reducer, initialState);
-    const { category, subCategory, brand, collection, flavour, flavourType, priceRange, nicotine, options, type, showFilter, filterProducts, sortOrder, currentPage, itemsPerPage } = state;
+    const { category, subCategory, brand, flavour, flavourType, priceRange, nicotine, options, type, showFilter, filterProducts, sortOrder, currentPage, itemsPerPage } = state;
     const location = useLocation();
+
+    const [openSections, setOpenSections] = useState({
+        brand: true,
+        flavour: true,
+        flavourType: true,
+        price: true,
+        nicotine: true,
+        options: true,
+        type: true
+    });
+
+    const toggleSection = (section) => {
+        setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
+    };
 
     const qParam = useMemo(() => {
         try {
@@ -150,21 +159,35 @@ function Collection() {
 
     const memoizedProducts = useMemo(() => products, [products]);
 
-    // Derive available filter options from product list (use original products for filters to capture all potential values)
+    // List of allowed brands/categories based on backend/public/products folders
+    const allowedBrands = useMemo(() => [
+        "Abt Hybrid", "Abt Twist", "Allo 500", "Allo Ultra 25k", "Allo e - juice 20 mg",
+        "Bazooka X3", "Elfbar AF 12000", "Elfbar BC10000", "Elfbar GH20000", "Elfbar Moonlight 70k",
+        "Elfbar Prime 1800", "Flavour Bease e- juice 20 Mg", "Flavour Bease e- juice 3mg",
+        "Flavour Beast X Twelve Monki e- juice", "Fog", "Gcore 30ml", "Hi5 Click", "Hydra",
+        "Ice Nic", "Level X G2 2+10", "Level X G2 Ultra", "Mode Max 2", "OneK Air",
+        "Prime Cream Charger", "Rivo Bar", "Sniper", "Twist Bar +", "Vfeel V1"
+    ], []);
+
+    // Derive available filter options from product list, but RESTRICT to allowedBrands
     const brands = useMemo(() => {
         const set = new Set();
-        memoizedProducts.forEach(p => { if (p.brand) set.add(p.brand); });
-        return Array.from(set).sort();
-    }, [memoizedProducts]);
-
-    const collections = useMemo(() => {
-        const set = new Set();
         memoizedProducts.forEach(p => {
-            if (p.category) set.add(p.category);
-            if (Array.isArray(p.categories)) p.categories.forEach(c => c && set.add(c));
+            if (p.brand && allowedBrands.includes(p.brand)) {
+                set.add(p.brand);
+            }
         });
+        // If you want to show ALL allowed brands even if no products are currently fetched (empty categories),
+        // you could return allowedBrands.sort().
+        // But to "filter from whatever available", we intersect with actual products.
+        // However, if the user wants the sidebar to ALWAYS show these categories, we should modify this.
+        // Given "shows THESE categories", let's try to populate the list with the allowed brands that exist in products.
+        // If the user wants the FULL list regardless of product text, we can just return allowedBrands.
+        // Let's stick to showing only what's in products to avoid empty filters,
+        // UNLESS the user implies the folder structure IS the categories list.
+        // Let's assume we filter products to find these brands.
         return Array.from(set).sort();
-    }, [memoizedProducts]);
+    }, [memoizedProducts, allowedBrands]);
 
     const flavours = useMemo(() => {
         const set = new Set();
@@ -195,32 +218,16 @@ function Collection() {
         dispatch({ type: 'SET_ITEMS_PER_PAGE', payload: e.target.value });
     };
 
-    // Handle initial category from URL
-    useEffect(() => {
-        const cat = new URLSearchParams(location.search).get('category');
-        if (cat) {
-            dispatch({ type: 'SET_COLLECTION', payload: [cat] });
-        }
-    }, [location.search]);
-
     useEffect(() => {
         const timeout = setTimeout(() => {
             // Flatten products first
             let filtered = flattenProducts(memoizedProducts);
 
-            // filter by collection (category / categories)
-            if (collection && collection.length) {
-                filtered = filtered.filter(item => {
-                    if (!item) return false;
-                    // Check singular 'category'
-                    if (item.category && collection.includes(item.category)) return true;
-                    // Check plural 'categories'
-                    if (Array.isArray(item.categories)) {
-                        if (item.categories.some(c => collection.includes(c))) return true;
-                    }
-                    return false;
-                });
+            // filter by brand
+            if (brand && brand.length) {
+                filtered = filtered.filter(item => item.brand && brand.includes(item.brand));
             }
+
             // filter by flavour
             if (flavour && flavour.length) {
                 // Check both product flavour and variant flavour if available
@@ -292,7 +299,7 @@ function Collection() {
         }, 100); // debounce delay
 
         return () => clearTimeout(timeout);
-    }, [memoizedProducts, category, subCategory, brand, collection, flavour, flavourType, priceRange, nicotine, options, type, sortOrder, search, showSearch, activeQuery]);
+    }, [memoizedProducts, category, subCategory, brand, flavour, flavourType, priceRange, nicotine, options, type, sortOrder, search, showSearch, activeQuery]);
 
     return (
         <div className="flex flex-col gap-1 sm:flex-row sm:gap-10 pt-10 border-t-2 border-gray-300">
@@ -312,8 +319,14 @@ function Collection() {
 
                 {/* Shop By Brand */}
                 <div className={`border border-gray-300 pl-5 py-3 mt-4 ${showFilter ? '' : 'hidden'} sm:block`}>
-                    <p className="mb-3 font-medium text-sm">Shop By Brand</p>
-                    <div className="flex flex-col gap-2 text-sm font-light text-gray-700">
+                    <p
+                        onClick={() => toggleSection('brand')}
+                        className="mb-3 font-medium text-sm flex justify-between items-center cursor-pointer pr-5 select-none"
+                    >
+                        Shop By Brand
+                        <img src={assets.dropdown_icon} className={`h-3 transition-transform duration-200 ${openSections.brand ? 'rotate-90' : ''}`} alt="" />
+                    </p>
+                    <div className={`flex flex-col gap-2 text-sm font-light text-gray-700 ${openSections.brand ? '' : 'hidden'}`}>
                         {brands.length ? brands.map(label => {
                             const id = `brand-${label}`;
                             return (
@@ -326,33 +339,16 @@ function Collection() {
                     </div>
                 </div>
 
-                {/* Collection */}
-                <div className={`border border-gray-300 pl-5 py-3 mt-4 ${showFilter ? '' : 'hidden'} sm:block`}>
-                    <p className="mb-3 font-medium text-sm">Collection</p>
-                    <div className="flex flex-col gap-2 text-sm font-light text-gray-700">
-                        {collections.length ? collections.map(label => {
-                            const id = `collection-${label}`;
-                            return (
-                                <div key={label} className="flex gap-2 items-center">
-                                    <input
-                                        id={id}
-                                        type="checkbox"
-                                        value={label}
-                                        checked={collection.includes(label)}
-                                        onChange={(e) => handleToggle('TOGGLE_COLLECTION', e.target.value)}
-                                        className="w-3"
-                                    />
-                                    <label htmlFor={id}>{label}</label>
-                                </div>
-                            );
-                        }) : <div className="text-xs text-gray-500">No collections</div>}
-                    </div>
-                </div>
-
                 {/* Shop By Flavour */}
                 <div className={`border border-gray-300 pl-5 py-3 mt-4 ${showFilter ? '' : 'hidden'} sm:block`}>
-                    <p className="mb-3 font-medium text-sm">Shop By Flavour</p>
-                    <div className="flex flex-col gap-2 text-sm font-light text-gray-700">
+                    <p
+                        onClick={() => toggleSection('flavour')}
+                        className="mb-3 font-medium text-sm flex justify-between items-center cursor-pointer pr-5 select-none"
+                    >
+                        Shop By Flavour
+                        <img src={assets.dropdown_icon} className={`h-3 transition-transform duration-200 ${openSections.flavour ? 'rotate-90' : ''}`} alt="" />
+                    </p>
+                    <div className={`flex flex-col gap-2 text-sm font-light text-gray-700 ${openSections.flavour ? '' : 'hidden'}`}>
                         {flavours.length ? flavours.map(label => {
                             const id = `flavour-${label}`;
                             return (
@@ -365,26 +361,18 @@ function Collection() {
                     </div>
                 </div>
 
-                {/* Flavour Type */}
-                <div className={`border border-gray-300 pl-5 py-3 mt-4 ${showFilter ? '' : 'hidden'} sm:block`}>
-                    <p className="mb-3 font-medium text-sm">Flavour Type</p>
-                    <div className="flex flex-col gap-2 text-sm font-light text-gray-700">
-                        {['Dessert', 'Fruity', 'Menthol', 'Tobacco'].map(label => {
-                            const id = `flavourtype-${label}`;
-                            return (
-                                <div key={label} className="flex gap-2 items-center">
-                                    <input id={id} type="checkbox" value={label} onChange={(e) => handleToggle('TOGGLE_FLAVOURTYPE', e.target.value)} className="w-3" />
-                                    <label htmlFor={id}>{label}</label>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
+
 
                 {/* Shop By Price */}
                 <div className={`border border-gray-300 pl-5 py-3 mt-4 ${showFilter ? '' : 'hidden'} sm:block`}>
-                    <p className="mb-3 font-medium text-sm">Shop By Price</p>
-                    <div className="flex flex-col gap-2 text-sm font-light text-gray-700">
+                    <p
+                        onClick={() => toggleSection('price')}
+                        className="mb-3 font-medium text-sm flex justify-between items-center cursor-pointer pr-5 select-none"
+                    >
+                        Shop By Price
+                        <img src={assets.dropdown_icon} className={`h-3 transition-transform duration-200 ${openSections.price ? 'rotate-90' : ''}`} alt="" />
+                    </p>
+                    <div className={`flex flex-col gap-2 text-sm font-light text-gray-700 ${openSections.price ? '' : 'hidden'}`}>
                         {priceRanges.map(label => {
                             const id = `price-${label}`;
                             return (
@@ -397,53 +385,11 @@ function Collection() {
                     </div>
                 </div>
 
-                {/* Nicotine Hit */}
-                <div className={`border border-gray-300 pl-5 py-3 mt-4 ${showFilter ? '' : 'hidden'} sm:block`}>
-                    <p className="mb-3 font-medium text-sm">Nicotine Hit</p>
-                    <div className="flex flex-col gap-2 text-sm font-light text-gray-700">
-                        {nicotineLevels.map(label => {
-                            const id = `nic-${label}`;
-                            return (
-                                <div key={label} className="flex gap-2 items-center">
-                                    <input id={id} type="checkbox" value={label} onChange={(e) => handleToggle('TOGGLE_NICOTINE', e.target.value)} className="w-3" />
-                                    <label htmlFor={id}>{label}</label>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
 
-                {/* Options */}
-                <div className={`border border-gray-300 pl-5 py-3 mt-4 ${showFilter ? '' : 'hidden'} sm:block`}>
-                    <p className="mb-3 font-medium text-sm">Options</p>
-                    <div className="flex flex-col gap-2 text-sm font-light text-gray-700">
-                        {optionItems.map(label => {
-                            const id = `opt-${label}`;
-                            return (
-                                <div key={label} className="flex gap-2 items-center">
-                                    <input id={id} type="checkbox" value={label} onChange={(e) => handleToggle('TOGGLE_OPTIONS', e.target.value)} className="w-3" />
-                                    <label htmlFor={id}>{label}</label>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
 
-                {/* Shop By Type */}
-                <div className={`border border-gray-300 pl-5 py-3 mt-4 mb-6 ${showFilter ? '' : 'hidden'} sm:block`}>
-                    <p className="mb-3 font-medium text-sm">Shop By Type</p>
-                    <div className="flex flex-col gap-2 text-sm font-light text-gray-700">
-                        {types.length ? types.map(label => {
-                            const id = `type-${label}`;
-                            return (
-                                <div key={label} className="flex gap-2 items-center">
-                                    <input id={id} type="checkbox" value={label} onChange={(e) => handleToggle('TOGGLE_TYPE', e.target.value)} className="w-3" />
-                                    <label htmlFor={id}>{label}</label>
-                                </div>
-                            );
-                        }) : <div className="text-xs text-gray-500">No types</div>}
-                    </div>
-                </div>
+
+
+
             </div>
 
             {/* Right: Product List */}

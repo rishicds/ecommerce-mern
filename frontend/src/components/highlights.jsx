@@ -1,15 +1,16 @@
 import React from "react";
 import { ArrowRight, MapPin, Star } from "lucide-react";
+import { Link } from "react-router";
 
 const Highlights = () => {
     // You can import your images and replace these placeholder paths
     const IMAGES = {
-        banner1: "/Grape.jpg",
-        banner2: "/Flavourys.png",
-        banner3: "/Flavour.png",
-        collection1: "/Banana.png",
-        collection2: "/Bease.png",
-        collection3: "/Ice.jpg",
+        banner1: "https://res.cloudinary.com/dhhs7twmp/image/upload/v1767550894/vapee/products/Allo%20Ultra%2025k/alloultra25k_grapeice_1767550891888_mwaaai.png",
+        banner2: "https://res.cloudinary.com/dhhs7twmp/image/upload/v1767550961/vapee/products/Elfbar%20BC10000/elfbarbc10000_bluerazzice_1767550961577_jghaj.jpg",
+        banner3: "https://res.cloudinary.com/dhhs7twmp/image/upload/v1767551439/vapee/products/Sniper/sniper_sniperpeachice_1767551439874_ul3x2.jpg",
+        collection1: "https://res.cloudinary.com/dhhs7twmp/image/upload/v1767550955/vapee/products/Elfbar%20AF%2012000/elfbaraf12000_tangybluerazz_1767550955712_lr0vlq.jpg",
+        collection2: "https://res.cloudinary.com/dhhs7twmp/image/upload/v1767551442/vapee/products/Sniper/sniper_sniperwatermelonice_1767551441978_7jvgex.jpg",
+        collection3: "https://res.cloudinary.com/dhhs7twmp/image/upload/v1767551206/vapee/products/Gcore%2030ml/gcore30ml_blueberryice20mgjpg_1767551206534_ly815f.webp",
         exterior: "/Triple.jpg",
     };
 
@@ -22,8 +23,8 @@ const Highlights = () => {
                     <div className="lg:col-span-8 relative overflow-hidden bg-white h-[500px] rounded-lg group">
                         <img
                             src={IMAGES.banner1}
-                            alt="VEEV One"
-                            className="absolute inset-0 w-full h-full object-contain opacity-70 transition-all duration-700 group-hover:opacity-80 group-hover:scale-105"
+                            alt="Allo Ultra 25K"
+                            className="absolute inset-0 w-full h-full object-contain transition-all duration-700 group-hover:scale-105"
                         />
                         <div className="absolute inset-0 flex items-end p-8 md:p-12">
                             <div className="max-w-lg">
@@ -31,48 +32,54 @@ const Highlights = () => {
                                     New Arrival
                                 </span>
                                 <h2 className="text-2xl md:text-4xl font-bold text-black mb-3 tracking-tight">
-                                    Lorem Ipsum
+                                    Allo Ultra 25K
                                 </h2>
                                 <p className="text-black/90 mb-6 text-base">
-                                    Lorem ipsum dolor sit <br />amet consectetur adipiscing <br/>elit sed do eiusmod
+                                    Experience the massive <br />Grape Ice capacity.
                                 </p>
-                                <button className="bg-white text-black hover:bg-[#FFB81C] hover:text-black font-semibold px-6 py-3 rounded-md transition-all duration-300 flex items-center gap-2 group/btn">
+                                <Link to={`/product/${'695aaabb8d9bcf65193c3e28'}`} className="bg-white text-black hover:bg-[#FFB81C] hover:text-black font-semibold px-6 py-3 rounded-md transition-all duration-300 flex items-center gap-2 group/btn w-fit">
                                     Explore Collection
                                     <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
-                                </button>
+                                </Link>
                             </div>
                         </div>
                     </div>
 
                     {/* Secondary Featured */}
                     <div className="lg:col-span-4 grid grid-rows-2 gap-4">
-                        <div className="relative overflow-hidden bg-gray-100 h-full min-h-[240px] rounded-lg group">
+                        <div className="relative overflow-hidden bg-white h-full min-h-[240px] rounded-lg group">
                             <img
                                 src={IMAGES.banner2}
-                                alt="VEEV Now Ultra"
-                                className="absolute inset-0 w-full h-full object-contain opacity-60 transition-all duration-700 group-hover:scale-105"
+                                alt="Elfbar BC10000"
+                                className="absolute right-0 bottom-0 h-full w-3/5 object-contain object-right-bottom transition-all duration-700 group-hover:scale-105"
                             />
-                            <div className="absolute inset-0 p-6 flex flex-col justify-between">
+                            <div className="absolute inset-0 p-6 flex flex-col justify-between w-1/2 z-10">
                                 <span className="inline-block bg-[#FFB81C] text-black text-xs font-bold px-2.5 py-1 uppercase w-fit">
                                     Ultra
                                 </span>
                                 <div>
-                                    <h3 className="text-lg font-bold text-black mb-1">Lorem Dolor</h3>
-                                    <p className="text-black/80 text-xs">Premium Quality</p>
+                                    <h3 className="text-lg font-bold text-black mb-1">Elfbar BC10000</h3>
+                                    <p className="text-black/80 text-xs">Blue Razz Ice</p>
+                                    <Link to={`/product/${'695aab048d9bcf65193c3eaf'}`} className="mt-3 text-[#FFB81C] font-semibold text-sm inline-flex items-center gap-2">
+                                        Shop Now <ArrowRight className="w-4 h-4" />
+                                    </Link>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="relative overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 h-full min-h-[240px] rounded-lg group">
+                        <div className="relative overflow-hidden bg-white h-full min-h-[240px] rounded-lg group">
                             <img
                                 src={IMAGES.banner3}
-                                alt="Geek Bar"
-                                className="absolute inset-0 w-full h-full object-contain transition-all duration-700 group-hover:scale-105"
+                                alt="Sniper"
+                                className="absolute right-0 bottom-0 h-full w-3/5 object-contain object-right-bottom transition-all duration-700 group-hover:scale-105"
                             />
-                            <div className="absolute inset-0 p-6 flex items-end">
+                            <div className="absolute inset-0 p-6 flex items-end w-1/2 z-10">
                                 <div>
-                                    <h3 className="text-lg font-bold text-black">Sit Amet</h3>
-                                    <p className="text-black/80 text-xs">Consectetur Adipiscing</p>
+                                    <h3 className="text-lg font-bold text-black">Sniper</h3>
+                                    <p className="text-black/80 text-xs">Peach Ice</p>
+                                    <Link to={`/product/${'695aac718d9bcf65193c4af3'}`} className="mt-3 text-[#FFB81C] font-semibold text-sm inline-flex items-center gap-2">
+                                        Shop Now <ArrowRight className="w-4 h-4" />
+                                    </Link>
                                 </div>
                             </div>
                         </div>
@@ -82,9 +89,9 @@ const Highlights = () => {
                 {/* Collection Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
                     {[
-                        { img: IMAGES.collection1, title: "Lorem Ipsum", subtitle: "Dolor Sit Amet" },
-                        { img: IMAGES.collection2, title: "Consectetur", subtitle: "Adipiscing Elit" },
-                        { img: IMAGES.collection3, title: "Sed Dolor", subtitle: "Amet Consectetur" }
+                        { img: IMAGES.collection1, title: "Elfbar AF 12000", subtitle: "Tangy Blue Razz", link: "/product/695aaafe8d9bcf65193c3e9b" },
+                        { img: IMAGES.collection2, title: "Sniper 2-in-1", subtitle: "Watermelon Ice", link: "/product/695aac738d9bcf65193c4b20" },
+                        { img: IMAGES.collection3, title: "Gcore E-Liquid", subtitle: "Refreshing Mint", link: "/product/695aab8c8d9bcf65193c474d" }
                     ].map((item, idx) => (
                         <div key={idx} className="flex flex-col bg-white rounded-lg overflow-hidden group cursor-pointer shadow-sm hover:shadow-md transform transition-transform duration-300 hover:-translate-y-1">
                             <div className="w-full h-56 md:h-64 flex items-center justify-center bg-white">
@@ -94,7 +101,7 @@ const Highlights = () => {
                                 <h4 className="text-sm md:text-base font-semibold text-black">{item.title}</h4>
                                 <p className="text-gray-600 text-xs mt-1">{item.subtitle}</p>
                                 <div className="mt-3">
-                                    <button className="text-[#FFB81C] font-semibold text-sm inline-flex items-center gap-2">Shop Now <ArrowRight className="w-4 h-4" /></button>
+                                    <Link to={item.link} className="text-[#FFB81C] font-semibold text-sm inline-flex items-center gap-2">Shop Now <ArrowRight className="w-4 h-4" /></Link>
                                 </div>
                             </div>
                         </div>

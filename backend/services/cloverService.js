@@ -39,7 +39,7 @@ class CloverService {
       console.log('Starting full product fetch from Clover...');
 
       while (true) {
-        const response = await fetch(`${this.baseUrl}/${this.merchantId}/items?expand=categories,tags,itemStock,itemGroup,modifierGroups,taxRates,revenueClass,images&limit=${limit}&offset=${offset}`, { // Expanded revenueClass and images
+        const response = await fetch(`${this.baseUrl}/${this.merchantId}/items?expand=categories,tags,itemStock,itemGroup,modifierGroups,taxRates,revenueClass,images,attributes,options,variants&limit=${limit}&offset=${offset}`, { // Expanded revenueClass and images
           method: 'GET',
           headers: this.getHeaders()
         });

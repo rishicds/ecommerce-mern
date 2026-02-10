@@ -61,15 +61,25 @@ const toggleItem = (list, value) =>
     list.includes(value) ? list.filter(item => item !== value) : [...list, value];
 
 const sortProducts = (productsToSort, sortOrder) => {
-    switch (sortOrder) {
-        case 'low-high':
-            return [...productsToSort].sort((a, b) => a.price - b.price);
-        case 'high-low':
-            return [...productsToSort].sort((a, b) => b.price - a.price);
-        case 'relevant':
-        default:
-            return productsToSort;
-    }
+    return [...productsToSort].sort((a, b) => {
+        // Prioritize products with images
+        const aHasImage = a.image && a.image.length > 0;
+        const bHasImage = b.image && b.image.length > 0;
+
+        if (aHasImage && !bHasImage) return -1;
+        if (!aHasImage && bHasImage) return 1;
+
+        // Secondary sort based on user selection
+        switch (sortOrder) {
+            case 'low-high':
+                return (a.price) - (b.price);
+            case 'high-low':
+                return (b.price) - (a.price);
+            case 'relevant':
+            default:
+                return 0;
+        }
+    });
 };
 
 // Helper to flatten products into variants

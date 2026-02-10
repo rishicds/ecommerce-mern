@@ -127,6 +127,10 @@ const uploadImages = async () => {
                 .replace(/\s*HIT\s*/gi, '')
                 .replace(/\s*E-LIQUID\s*/gi, '')
                 .trim();
+            if (productNameClean.toLowerCase().startsWith("flavour beast e-juice")) {
+                productNameClean = productNameClean.replace(/flavour beast e-juice\s*/i, '').trim();
+            }
+
             if (brandName.toLowerCase().includes("flavour bease") && productNameClean.toLowerCase().startsWith("flavour bease")) {
                 productNameClean = productNameClean.replace(/flavour bease e- juice /i, '').replace(/flavour bease /i, '').trim();
             }
@@ -253,6 +257,13 @@ const uploadImages = async () => {
                     });
 
                     if (variantMatch) {
+                        // CHECK IF IMAGE ALREADY EXISTS
+                        if (variantMatch.image && variantMatch.image.includes('cloudinary')) {
+                            console.log(`    [SKIP] Variant already has image: "${variantMatch.flavour || variantMatch.size}"`);
+                            if (!variantFound) variantFound = true; // Mark as found so we don't treat it as missing
+                            break;
+                        }
+
                         console.log(`    [MATCH VARIANT] Found in "${parent.name}" -> Variant: ${variantMatch.flavour || variantMatch.size}`);
 
                         let imageUrl = '';

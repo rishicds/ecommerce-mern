@@ -193,7 +193,7 @@ const DiscountCodes = () => {
                                     required
                                 >
                                     <option value="percentage">Percentage (%)</option>
-                                    <option value="flat">Flat Amount (₹)</option>
+                                    <option value="flat">Flat Amount ($)</option>
                                 </select>
                             </div>
 
@@ -211,7 +211,7 @@ const DiscountCodes = () => {
                                     required
                                 />
                                 <span className="text-xs text-gray-500">
-                                    {formData.discountType === 'percentage' ? '0-100%' : 'Flat amount in ₹'}
+                                    {formData.discountType === 'percentage' ? '0-100%' : 'Flat amount in CAD ($)'}
                                 </span>
                             </div>
 
@@ -281,8 +281,8 @@ const DiscountCodes = () => {
                                                     onChange={() => handleProductSelection(product._id)}
                                                     className="w-4 h-4"
                                                 />
-                                                <img 
-                                                    src={product.images?.[0]?.url || product.image?.[0]?.url} 
+                                                <img
+                                                    src={product.images?.[0]?.url || product.image?.[0]?.url}
                                                     alt={product.name}
                                                     className="w-10 h-10 object-cover rounded"
                                                 />
@@ -340,7 +340,7 @@ const DiscountCodes = () => {
                                     <td className="px-4 py-3 font-semibold">{code.code}</td>
                                     <td className="px-4 py-3 capitalize">{code.discountType}</td>
                                     <td className="px-4 py-3">
-                                        {code.discountType === 'percentage' ? `${code.discountValue}%` : `₹${code.discountValue}`}
+                                        {code.discountType === 'percentage' ? `${code.discountValue}%` : `$${code.discountValue}`}
                                     </td>
                                     <td className="px-4 py-3">
                                         {code.applicableProducts.length === 0 ? (
@@ -361,9 +361,8 @@ const DiscountCodes = () => {
                                         )}
                                     </td>
                                     <td className="px-4 py-3">
-                                        <span className={`px-2 py-1 rounded text-xs ${
-                                            code.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                                        }`}>
+                                        <span className={`px-2 py-1 rounded text-xs ${code.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                            }`}>
                                             {code.status}
                                         </span>
                                     </td>

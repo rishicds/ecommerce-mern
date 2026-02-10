@@ -19,6 +19,7 @@ function PlaceOrder() {
         cartItems,
         cartDetails,
         getCartAmount,
+        getCartSummary, // NEW
         navigate,
         backendUrl,
         setCartItems,
@@ -269,11 +270,19 @@ function PlaceOrder() {
                         <div className='mt-4'>
                             {/* Totals with discount (if applied) */}
                             {(() => {
-                                const subtotal = getCartAmount();
-                                const discountAmount = discount?.totalDiscount || 0;
-                                const afterDiscount = Math.max(0, subtotal - discountAmount);
-                                const taxes = afterDiscount * cloverSettings.taxRate;
-                                const totalAmount = afterDiscount + deliveryFee + taxes;
+                                const { subtotal, b5g1Discount, couponDiscount, shippingFee } = getCartSummary();
+                                // Clover settings might override shipping if using Clover, but for COD we use context.
+                                // If paymentMethod is Clover, we might want to respect Clover settings, 
+                                // but for consistency, we should try to match context logic.
+                                // However, `PlaceOrder` fetches specific `cloverSettings`. 
+                                // Let's try to align: if `getCartSummary` says free shipping (0), we should probably use 0.
+                                // If `getCartSummary` says fee, and Clover says fee, we use fee.
+
+                                const finalShipping = shippingFee; // Trust our new rule
+
+                                const subtotalAfterDiscounts = Math.max(0, subtotal - b5g1Discount - couponDiscount);
+                                const taxes = subtotalAfterDiscounts * cloverSettings.taxRate;
+                                const totalAmount = subtotalAfterDiscounts + finalShipping + taxes;
 
                                 return (
                                     <>
@@ -282,16 +291,23 @@ function PlaceOrder() {
                                             <div>{currency}{subtotal.toFixed(2)}</div>
                                         </div>
 
-                                        {discountAmount > 0 && (
+                                        {b5g1Discount > 0 && (
+                                            <div className='flex justify-between text-sm mt-2 text-green-600'>
+                                                <div>Buy 5 Get 1 Free</div>
+                                                <div>-{currency}{b5g1Discount.toFixed(2)}</div>
+                                            </div>
+                                        )}
+
+                                        {couponDiscount > 0 && (
                                             <div className='flex justify-between text-sm mt-2 text-green-600'>
                                                 <div>Discount</div>
-                                                <div>-{currency}{discountAmount.toFixed(2)}</div>
+                                                <div>-{currency}{couponDiscount.toFixed(2)}</div>
                                             </div>
                                         )}
 
                                         <div className='flex justify-between text-sm mt-2'>
                                             <div>Shipping</div>
-                                            <div>{currency}{deliveryFee.toFixed(2)}</div>
+                                            <div>{finalShipping === 0 ? 'Free' : `${currency}${finalShipping.toFixed(2)}`}</div>
                                         </div>
 
                                         <div className='flex justify-between text-sm mt-2'>

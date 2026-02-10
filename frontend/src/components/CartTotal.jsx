@@ -3,15 +3,14 @@ import { useShop } from "../context/ShopContex";
 import Title from "./Title";
 
 const CartTotal = () => {
-    const { currency, deliveryFee, getCartAmount, applyDiscount, discount, removeDiscount } = useShop();
+    const { currency, applyDiscount, discount, removeDiscount, getCartSummary } = useShop();
     const [discountCode, setDiscountCode] = useState('');
     const [applying, setApplying] = useState(false);
 
-    const subtotal = getCartAmount();
-    const discountAmount = discount?.totalDiscount || 0;
-    const afterDiscount = Math.max(0, subtotal - discountAmount);
-    const taxes = afterDiscount * 0.06; // 6% estimated taxes (post-discount)
-    const total = afterDiscount + deliveryFee + taxes;
+    const { subtotal, b5g1Discount, couponDiscount, shippingFee } = getCartSummary();
+    const subtotalAfterDiscounts = Math.max(0, subtotal - b5g1Discount - couponDiscount);
+    const taxes = subtotalAfterDiscounts * 0.06; // 6% estimated taxes
+    const total = subtotalAfterDiscounts + shippingFee + taxes;
 
     const handleApplyDiscount = async () => {
         if (!discountCode.trim()) return;
@@ -62,8 +61,8 @@ const CartTotal = () => {
                                 Code: {discount.code}
                             </p>
                             <p className="text-xs text-green-600">
-                                {discount.discountType === 'percentage' 
-                                    ? `${discount.discountValue}% off` 
+                                {discount.discountType === 'percentage'
+                                    ? `${discount.discountValue}% off`
                                     : `₹${discount.discountValue} off`}
                             </p>
                         </div>
@@ -82,21 +81,31 @@ const CartTotal = () => {
                     <p>Subtotal</p>
                     <p>{currency}{subtotal.toFixed(2)}</p>
                 </div>
-                
-                {discount && discountAmount > 0 && (
+
+                {b5g1Discount > 0 && (
+                    <>
+                        <hr className="border-gray-300" />
+                        <div className="flex justify-between text-green-600">
+                            <p>Buy 5 Get 1 Free</p>
+                            <p>-{currency}{b5g1Discount.toFixed(2)}</p>
+                        </div>
+                    </>
+                )}
+
+                {couponDiscount > 0 && (
                     <>
                         <hr className="border-gray-300" />
                         <div className="flex justify-between text-green-600">
                             <p>Discount</p>
-                            <p>-{currency}{discountAmount.toFixed(2)}</p>
+                            <p>-{currency}{couponDiscount.toFixed(2)}</p>
                         </div>
                     </>
                 )}
-                
+
                 <hr className="border-gray-300" />
                 <div className="flex justify-between">
                     <p>Shipping Fee</p>
-                    <p>{currency}{deliveryFee.toFixed(2)}</p>
+                    <p>{shippingFee === 0 ? 'Free' : `${currency}${shippingFee.toFixed(2)}`}</p>
                 </div>
 
                 <div className="flex justify-between text-sm mt-2">

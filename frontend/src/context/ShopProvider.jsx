@@ -371,6 +371,70 @@ const ShopProvider = ({ children }) => {
         return totalAmount;
     }, [cartItems, products, cartDetails]);
 
+    // NEW: Centralized Cart Summary Calculation
+    const getCartSummary = useCallback(() => {
+        let subtotal = 0;
+        let totalQuantity = 0;
+        let minPrice = Infinity;
+        let b5g1Discount = 0;
+
+        // Iterate through items (prefer cartDetails for price accuracy)
+        let items = [];
+        if (cartDetails && cartDetails.length) {
+            items = cartDetails.map(d => ({ price: d.price || 0, quantity: d.quantity || 0 }));
+        } else {
+            // Fallback to local cartItems + products lookup
+            for (const productId in cartItems) {
+                const product = products.find(p => p._id === productId);
+                if (!product) continue;
+                for (const size in cartItems[productId]) {
+                    const quantity = cartItems[productId][size];
+                    const variant = product.variants && product.variants.length ? product.variants.find(v => v.size === size) : null;
+                    const price = variant ? variant.price : product.price;
+                    items.push({ price: price || 0, quantity: quantity || 0 });
+                }
+            }
+        }
+
+        items.forEach(item => {
+            const qty = Number(item.quantity) || 0;
+            const price = Number(item.price) || 0;
+            if (qty > 0) {
+                subtotal += price * qty;
+                totalQuantity += qty;
+                if (price < minPrice) minPrice = price;
+            }
+        });
+
+        if (totalQuantity === 0) minPrice = 0;
+
+        // Rule: Buy 5 Get 1 Free (Cheapest Item)
+        if (totalQuantity >= 5 && minPrice !== Infinity) {
+            b5g1Discount = minPrice;
+        }
+
+        const subtotalAfterB5G1 = Math.max(0, subtotal - b5g1Discount);
+
+        // Coupon Discount
+        const couponDiscount = discount?.totalDiscount || 0;
+
+        // Shipping Rule: Free if Subtotal (after item discount) > 125
+        let shippingFee = deliveryFee; // from config
+        if (subtotalAfterB5G1 > 125) {
+            shippingFee = 0;
+        }
+
+        return {
+            subtotal,
+            b5g1Discount,
+            couponDiscount,
+            subtotalAfterB5G1, // useful for "Free shipping" check visualization
+            shippingFee,
+            totalQuantity
+        };
+
+    }, [cartItems, cartDetails, products, discount, deliveryFee]);
+
     // Apply discount code
     const applyDiscount = useCallback(async (code) => {
         try {
@@ -540,8 +604,9 @@ const ShopProvider = ({ children }) => {
         removeFromWishlist,
         isInWishlist,
         moveToCart,
-        fetchWishlist
-    }), [search, showSearch, cartItems, cartDetails, addToCart, getCartCount, updateQuantity, getCartAmount, navigate, products, showCartDrawer, setShowCartDrawer, discount, applyDiscount, removeDiscount, isProductEligibleForDiscount, wishlist, addToWishlist, removeFromWishlist, isInWishlist, moveToCart, fetchWishlist]);
+        fetchWishlist,
+        getCartSummary
+    }), [search, showSearch, cartItems, cartDetails, addToCart, getCartCount, updateQuantity, getCartAmount, navigate, products, showCartDrawer, setShowCartDrawer, discount, applyDiscount, removeDiscount, isProductEligibleForDiscount, wishlist, addToWishlist, removeFromWishlist, isInWishlist, moveToCart, fetchWishlist, getCartSummary]);
 
     return (
         <ShopContext.Provider value={contextValue}>

@@ -30,6 +30,8 @@ const syncProducts = async (req, res) => {
         });
 
         let syncedCount = 0;
+        let errorCount = 0;
+        const errors = [];
 
         // 3. Process Groups
         for (const groupId in groups) {
@@ -41,183 +43,199 @@ const syncProducts = async (req, res) => {
             // Log for debugging
             console.log(`Processing Group ${groupId} - ${items.length} items. First Item: ${firstItem.name}`);
 
-            // Try to find existing Product by cloverItemGroupId
-            let product = await Product.findOne({ cloverItemGroupId: groupId });
+            try {
+                // Try to find existing Product by cloverItemGroupId
+                let product = await Product.findOne({ cloverItemGroupId: groupId });
 
-            const mainName = firstItem.name;
+                const mainName = firstItem.name;
 
-            // Construct Variants with Robust Strategy
-            const variants = items.map(item => {
+                // Construct Variants with Robust Strategy
+                const variants = items.map(item => {
+                    let flavour = "";
+                    let size = "";
+
+                    // 1. Check Attributes
+                    if (item.attributes && item.attributes.elements) {
+                        item.attributes.elements.forEach(attr => {
+                            const attrName = (attr.name || "").toLowerCase();
+                            if (attrName.includes("flavour") || attrName.includes("flavor")) {
+                                flavour = attr.value;
+                            } else if (attrName.includes("size") || attrName.includes("capacity")) {
+                                size = attr.value;
+                            }
+                        });
+                    }
+
+                    // 2. Check Modifier Groups (sometimes used for variants)
+                    if ((!flavour || !size) && item.modifierGroups && item.modifierGroups.elements) {
+                        item.modifierGroups.elements.forEach(mg => {
+                            const mgName = (mg.name || "").toLowerCase();
+                            // If modifiers are just options, we might not extract value directly without drilling down
+                            // But if the group name is "Flavor", maybe the modifier *is* the flavor? 
+                            // This is tricky without modifier selection, but let's check group names.
+                        });
+                    }
+
+                    // 3. Fallback: Use Name
+                    // If flavor is still empty, and the item name includes " - ", maybe the suffix is flavor?
+                    // Or simply use the whole name as flavor if it's different from main group name?
+                    // For now, simpler fallback: Use name as flavor if flavor is missing.
+                    if (!flavour) {
+                        // Try to extract from name if it looks like "Product Name - Flavor"
+                        // But here 'mainName' might be same as 'item.name' if group has no distinct name.
+                        // Let's us item.name as flavour.
+                        flavour = item.name;
+                    }
+
+                    if (!size) {
+                        size = item.name;
+                    }
+
+                    return {
+                        size: size,
+                        flavour: flavour,
+                        price: item.price / 100,
+                        quantity: item.itemStock ? item.itemStock.quantity : 0,
+                        cloverItemId: item.id,
+                        sku: item.sku || "",
+                        showOnPOS: !item.hidden,
+                        // If we have specific variant images in Clover (rarely directly linked), we could map them here
+                    };
+                });
+
+                // Determine main flavor (first variant's flavor)
+                const mainFlavour = variants.length > 0 ? variants[0].flavour : "";
+
+                // Common Metadata
+                const categories = firstItem.categories && Array.isArray(firstItem.categories.elements)
+                    ? firstItem.categories.elements.map(c => c.name)
+                    : [];
+
+                const modifierGroups = firstItem.modifierGroups && Array.isArray(firstItem.modifierGroups.elements)
+                    ? firstItem.modifierGroups.elements
+                    : [];
+
+                const taxRates = firstItem.taxRates && Array.isArray(firstItem.taxRates.elements)
+                    ? firstItem.taxRates.elements
+                    : [];
+
+                // Calculate total stock
+                const totalStock = variants.reduce((acc, v) => acc + (v.quantity || 0), 0);
+
+                if (!product) {
+                    product = new Product({
+                        cloverItemGroupId: groupId,
+                        productId: groupId, // Use Group ID as unique productId
+                        name: mainName,
+                        description: firstItem.description || mainName,
+                        price: variants[0].price, // Base price
+                        variants: variants,
+                        categories: categories,
+                        flavour: mainFlavour,
+                        stockCount: totalStock,
+                        inStock: totalStock > 0,
+                        showOnPOS: !firstItem.hidden,
+                        modifierGroups: modifierGroups,
+                        taxRates: taxRates,
+                        images: []
+                    });
+                } else {
+                    // Update
+                    product.name = mainName;
+                    product.variants = variants;
+                    product.categories = categories;
+                    product.flavour = mainFlavour;
+                    product.stockCount = totalStock;
+                    product.inStock = totalStock > 0;
+                    product.modifierGroups = modifierGroups;
+                    product.taxRates = taxRates;
+                    product.price = variants[0].price;
+                }
+
+                await product.save();
+                syncedCount++;
+            } catch (err) {
+                console.error(`Error syncing Group ${groupId}:`, err);
+                errorCount++;
+                errors.push({ id: groupId, name: firstItem.name, type: 'group', error: err.message });
+            }
+        }
+
+        // 4. Process Standalone Items
+        for (const item of standalone) {
+            try {
+                let product = await Product.findOne({ externalCloverId: item.id });
+                const stock = item.itemStock ? item.itemStock.quantity : 0;
+
                 let flavour = "";
                 let size = "";
 
-                // 1. Check Attributes
                 if (item.attributes && item.attributes.elements) {
                     item.attributes.elements.forEach(attr => {
                         const attrName = (attr.name || "").toLowerCase();
                         if (attrName.includes("flavour") || attrName.includes("flavor")) {
                             flavour = attr.value;
-                        } else if (attrName.includes("size") || attrName.includes("capacity")) {
+                        } else if (attrName.includes("size")) {
                             size = attr.value;
                         }
                     });
                 }
 
-                // 2. Check Modifier Groups (sometimes used for variants)
-                if ((!flavour || !size) && item.modifierGroups && item.modifierGroups.elements) {
-                    item.modifierGroups.elements.forEach(mg => {
-                        const mgName = (mg.name || "").toLowerCase();
-                        // If modifiers are just options, we might not extract value directly without drilling down
-                        // But if the group name is "Flavor", maybe the modifier *is* the flavor? 
-                        // This is tricky without modifier selection, but let's check group names.
+                if (!flavour) flavour = item.name; // Fallback
+
+                const modifierGroups = item.modifierGroups && Array.isArray(item.modifierGroups.elements)
+                    ? item.modifierGroups.elements
+                    : [];
+
+                const taxRates = item.taxRates && Array.isArray(item.taxRates.elements)
+                    ? item.taxRates.elements
+                    : [];
+
+                if (!product) {
+                    product = new Product({
+                        externalCloverId: item.id,
+                        productId: item.id,
+                        name: item.name,
+                        price: item.price / 100,
+                        description: item.description || item.name,
+                        stockCount: stock,
+                        inStock: stock > 0,
+                        showOnPOS: !item.hidden,
+                        categories: item.categories && Array.isArray(item.categories.elements)
+                            ? item.categories.elements.map(c => c.name)
+                            : [],
+                        modifierGroups: modifierGroups,
+                        taxRates: taxRates,
+                        flavour: flavour,
+                        variants: [], // Standalone has no variants usually, or we could create one default variant
+                        images: []
                     });
-                }
-
-                // 3. Fallback: Use Name
-                // If flavor is still empty, and the item name includes " - ", maybe the suffix is flavor?
-                // Or simply use the whole name as flavor if it's different from main group name?
-                // For now, simpler fallback: Use name as flavor if flavor is missing.
-                if (!flavour) {
-                    // Try to extract from name if it looks like "Product Name - Flavor"
-                    // But here 'mainName' might be same as 'item.name' if group has no distinct name.
-                    // Let's us item.name as flavour.
-                    flavour = item.name;
-                }
-
-                if (!size) {
-                    size = item.name;
-                }
-
-                return {
-                    size: size,
-                    flavour: flavour,
-                    price: item.price / 100,
-                    quantity: item.itemStock ? item.itemStock.quantity : 0,
-                    cloverItemId: item.id,
-                    sku: item.sku || "",
-                    showOnPOS: !item.hidden,
-                    // If we have specific variant images in Clover (rarely directly linked), we could map them here
-                };
-            });
-
-            // Determine main flavor (first variant's flavor)
-            const mainFlavour = variants.length > 0 ? variants[0].flavour : "";
-
-            // Common Metadata
-            const categories = firstItem.categories && Array.isArray(firstItem.categories.elements)
-                ? firstItem.categories.elements.map(c => c.name)
-                : [];
-
-            const modifierGroups = firstItem.modifierGroups && Array.isArray(firstItem.modifierGroups.elements)
-                ? firstItem.modifierGroups.elements
-                : [];
-
-            const taxRates = firstItem.taxRates && Array.isArray(firstItem.taxRates.elements)
-                ? firstItem.taxRates.elements
-                : [];
-
-            // Calculate total stock
-            const totalStock = variants.reduce((acc, v) => acc + (v.quantity || 0), 0);
-
-            if (!product) {
-                product = new Product({
-                    cloverItemGroupId: groupId,
-                    productId: groupId, // Use Group ID as unique productId
-                    name: mainName,
-                    description: firstItem.description || mainName,
-                    price: variants[0].price, // Base price
-                    variants: variants,
-                    categories: categories,
-                    flavour: mainFlavour,
-                    stockCount: totalStock,
-                    inStock: totalStock > 0,
-                    showOnPOS: !firstItem.hidden,
-                    modifierGroups: modifierGroups,
-                    taxRates: taxRates,
-                    images: []
-                });
-            } else {
-                // Update
-                product.name = mainName;
-                product.variants = variants;
-                product.categories = categories;
-                product.flavour = mainFlavour;
-                product.stockCount = totalStock;
-                product.inStock = totalStock > 0;
-                product.modifierGroups = modifierGroups;
-                product.taxRates = taxRates;
-                product.price = variants[0].price;
-            }
-
-            await product.save();
-            syncedCount++;
-        }
-
-        // 4. Process Standalone Items
-        for (const item of standalone) {
-            let product = await Product.findOne({ externalCloverId: item.id });
-            const stock = item.itemStock ? item.itemStock.quantity : 0;
-
-            let flavour = "";
-            let size = "";
-
-            if (item.attributes && item.attributes.elements) {
-                item.attributes.elements.forEach(attr => {
-                    const attrName = (attr.name || "").toLowerCase();
-                    if (attrName.includes("flavour") || attrName.includes("flavor")) {
-                        flavour = attr.value;
-                    } else if (attrName.includes("size")) {
-                        size = attr.value;
-                    }
-                });
-            }
-
-            if (!flavour) flavour = item.name; // Fallback
-
-            const modifierGroups = item.modifierGroups && Array.isArray(item.modifierGroups.elements)
-                ? item.modifierGroups.elements
-                : [];
-
-            const taxRates = item.taxRates && Array.isArray(item.taxRates.elements)
-                ? item.taxRates.elements
-                : [];
-
-            if (!product) {
-                product = new Product({
-                    externalCloverId: item.id,
-                    productId: item.id,
-                    name: item.name,
-                    price: item.price / 100,
-                    description: item.description || item.name,
-                    stockCount: stock,
-                    inStock: stock > 0,
-                    showOnPOS: !item.hidden,
-                    categories: item.categories && Array.isArray(item.categories.elements)
+                } else {
+                    product.name = item.name;
+                    product.price = item.price / 100;
+                    product.stockCount = stock;
+                    product.showOnPOS = !item.hidden;
+                    product.modifierGroups = modifierGroups;
+                    product.taxRates = taxRates;
+                    product.flavour = flavour;
+                    product.categories = item.categories && Array.isArray(item.categories.elements)
                         ? item.categories.elements.map(c => c.name)
-                        : [],
-                    modifierGroups: modifierGroups,
-                    taxRates: taxRates,
-                    flavour: flavour,
-                    variants: [], // Standalone has no variants usually, or we could create one default variant
-                    images: []
-                });
-            } else {
-                product.name = item.name;
-                product.price = item.price / 100;
-                product.stockCount = stock;
-                product.showOnPOS = !item.hidden;
-                product.modifierGroups = modifierGroups;
-                product.taxRates = taxRates;
-                product.flavour = flavour;
-                product.categories = item.categories && Array.isArray(item.categories.elements)
-                    ? item.categories.elements.map(c => c.name)
-                    : product.categories;
+                        : product.categories;
+                }
+                await product.save();
+                syncedCount++;
+            } catch (err) {
+                console.error(`Error syncing Standalone Item ${item.id} (${item.name}):`, err);
+                errorCount++;
+                errors.push({ id: item.id, name: item.name, type: 'standalone', error: err.message });
             }
-            await product.save();
-            syncedCount++;
         }
 
-        res.json({ success: true, message: `Synced ${syncedCount} products (Merged Groups & Standalone)` });
+        res.json({
+            success: true,
+            message: `Synced ${syncedCount} products. Failed: ${errorCount}`,
+            details: { synced: syncedCount, failed: errorCount, errors: errors }
+        });
     } catch (error) {
         console.error(error);
         res.status(500).json({ success: false, message: error.message });

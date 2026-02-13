@@ -14,6 +14,7 @@ const ShopProvider = ({ children }) => {
     const [cartDetails, setCartDetails] = useState([]); // detailed cart items from backend
     const [showCartDrawer, setShowCartDrawer] = useState(false);
     const [products, setProducts] = useState([]);
+    const [categories, setCategories] = useState([]); // Add categories state
     const [discount, setDiscount] = useState(null); // Applied discount code details
     const [mergedOnLogin, setMergedOnLogin] = useState(false);
     const [wishlist, setWishlist] = useState([]); // Array of product IDs in wishlist
@@ -60,6 +61,21 @@ const ShopProvider = ({ children }) => {
         }
     }, [nextCursor, hasMore]);
 
+    // Fetch Categories
+    const fetchCategories = useCallback(async () => {
+        try {
+            const res = await axios.get(`${backendUrl}/api/category/list`);
+            if (res.data.success) {
+                setCategories(res.data.categories);
+            } else {
+                toast.error(res.data.message);
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to fetch categories");
+        }
+    }, [backendUrl]);
+
     // Get user cart data from DB and normalize for frontend
     const userCartData = useCallback(async () => {
         try {
@@ -102,6 +118,7 @@ const ShopProvider = ({ children }) => {
 
     useEffect(() => {
         fetchProducts();
+        fetchCategories();
         if (user) {
             userCartData();
             fetchWishlist();
@@ -577,6 +594,7 @@ const ShopProvider = ({ children }) => {
 
     const contextValue = useMemo(() => ({
         products,
+        categories, // Expose categories
         currency,
         deliveryFee,
         search,
@@ -606,7 +624,7 @@ const ShopProvider = ({ children }) => {
         moveToCart,
         fetchWishlist,
         getCartSummary
-    }), [search, showSearch, cartItems, cartDetails, addToCart, getCartCount, updateQuantity, getCartAmount, navigate, products, showCartDrawer, setShowCartDrawer, discount, applyDiscount, removeDiscount, isProductEligibleForDiscount, wishlist, addToWishlist, removeFromWishlist, isInWishlist, moveToCart, fetchWishlist, getCartSummary]);
+    }), [search, showSearch, cartItems, cartDetails, addToCart, getCartCount, updateQuantity, getCartAmount, navigate, products, categories, showCartDrawer, setShowCartDrawer, discount, applyDiscount, removeDiscount, isProductEligibleForDiscount, wishlist, addToWishlist, removeFromWishlist, isInWishlist, moveToCart, fetchWishlist, getCartSummary]);
 
     return (
         <ShopContext.Provider value={contextValue}>

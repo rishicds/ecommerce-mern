@@ -25,6 +25,8 @@ const initialState = {
 
 const reducer = (state, action) => {
     switch (action.type) {
+        case 'TOGGLE_CATEGORY':
+            return { ...state, category: toggleItem(state.category, action.payload) };
         // Legacy category toggles removed/merged
         case 'TOGGLE_SUBCATEGORY':
             return { ...state, subCategory: toggleItem(state.subCategory, action.payload) };
@@ -130,12 +132,13 @@ const flattenProducts = (products) => {
 
 // ---------- Main Component ----------
 function Collection() {
-    const { products, search, showSearch } = useShop();
+    const { products, search, showSearch, categories } = useShop();
     const [state, dispatch] = useReducer(reducer, initialState);
     const { category, subCategory, brand, flavour, flavourType, priceRange, nicotine, options, type, showFilter, filterProducts, sortOrder, currentPage, itemsPerPage } = state;
     const location = useLocation();
 
     const [openSections, setOpenSections] = useState({
+        category: true,
         brand: true,
         flavour: true,
         flavourType: true,
@@ -232,6 +235,18 @@ function Collection() {
             let filtered = flattenProducts(memoizedProducts);
 
             // filter by brand
+            if (category && category.length) {
+                filtered = filtered.filter(item => {
+                    if (item.categories && Array.isArray(item.categories)) {
+                        return item.categories.some(cat => category.includes(cat));
+                    }
+                    if (item.category) {
+                        return category.includes(item.category);
+                    }
+                    return false;
+                });
+            }
+
             if (brand && brand.length) {
                 filtered = filtered.filter(item => item.brand && brand.includes(item.brand));
             }
@@ -309,6 +324,11 @@ function Collection() {
         return () => clearTimeout(timeout);
     }, [memoizedProducts, category, subCategory, brand, flavour, flavourType, priceRange, nicotine, options, type, sortOrder, search, showSearch, activeQuery]);
 
+    // Derived category list (from context)
+    const categoryList = useMemo(() => {
+        return categories.map(c => c.name);
+    }, [categories]);
+
     return (
         <div className="flex flex-col gap-1 sm:flex-row sm:gap-10 pt-10 border-t-2 border-gray-300">
             {/* Left: Filter Options */}
@@ -324,6 +344,28 @@ function Collection() {
                         alt="Toggle"
                     />
                 </p>
+
+                {/* Shop By Category */}
+                <div className={`border border-gray-300 pl-5 py-3 mt-4 ${showFilter ? '' : 'hidden'} sm:block`}>
+                    <p
+                        onClick={() => toggleSection('category')}
+                        className="mb-3 font-medium text-sm flex justify-between items-center cursor-pointer pr-5 select-none"
+                    >
+                        Shop By Category
+                        <img src={assets.dropdown_icon} className={`h-3 transition-transform duration-200 ${openSections.category ? 'rotate-90' : ''}`} alt="" />
+                    </p>
+                    <div className={`flex flex-col gap-2 text-sm font-light text-gray-700 ${openSections.category ? '' : 'hidden'}`}>
+                        {categoryList.length ? categoryList.map(label => {
+                            const id = `category-${label}`;
+                            return (
+                                <div key={label} className="flex gap-2 items-center">
+                                    <input id={id} type="checkbox" value={label} onChange={(e) => handleToggle('TOGGLE_CATEGORY', e.target.value)} className="w-3" />
+                                    <label htmlFor={id}>{label}</label>
+                                </div>
+                            );
+                        }) : <div className="text-xs text-gray-500">No categories</div>}
+                    </div>
+                </div>
 
                 {/* Shop By Brand */}
                 <div className={`border border-gray-300 pl-5 py-3 mt-4 ${showFilter ? '' : 'hidden'} sm:block`}>

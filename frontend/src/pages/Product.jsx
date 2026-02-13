@@ -35,7 +35,15 @@ function Product() {
             setProductDetails(displayProduct);
 
             // set first image as selected (support new `images` array)
-            const firstImg = (product.images && product.images.length) ? product.images[0] : null;
+            let firstImg = (product.images && product.images.length) ? product.images[0] : null;
+            // Fallback: if no main image, try to grab one from variants
+            if (!firstImg && visibleVariants && visibleVariants.length > 0) {
+                const variantWithImage = visibleVariants.find(v => v.image);
+                if (variantWithImage) {
+                    firstImg = { url: variantWithImage.image };
+                }
+            }
+
             setSelectedImage(firstImg);
             // set default size to first variant size if available
             const firstVariantSize = visibleVariants && visibleVariants.length ? visibleVariants[0].size : '';
@@ -49,7 +57,13 @@ function Product() {
                             const p = res.data.product;
                             const visibleVariants = (p.variants || []).filter(v => v.showOnPOS !== false);
                             setProductDetails({ ...p, variants: visibleVariants });
-                            setSelectedImage((p.images && p.images.length) ? p.images[0] : firstImg);
+
+                            let img = (p.images && p.images.length) ? p.images[0] : firstImg;
+                            if (!img && visibleVariants && visibleVariants.length > 0) {
+                                const v = visibleVariants.find(v => v.image);
+                                if (v) img = { url: v.image };
+                            }
+                            setSelectedImage(img);
                             setSize((visibleVariants && visibleVariants.length) ? visibleVariants[0].size : '');
                         }
                     } catch (err) {
@@ -66,7 +80,13 @@ function Product() {
                         const p = res.data.product;
                         const visibleVariants = (p.variants || []).filter(v => v.showOnPOS !== false);
                         setProductDetails({ ...p, variants: visibleVariants });
-                        setSelectedImage((p.images && p.images.length) ? p.images[0] : null);
+
+                        let img = (p.images && p.images.length) ? p.images[0] : null;
+                        if (!img && visibleVariants && visibleVariants.length > 0) {
+                            const v = visibleVariants.find(v => v.image);
+                            if (v) img = { url: v.image };
+                        }
+                        setSelectedImage(img);
                         setSize((visibleVariants && visibleVariants.length) ? visibleVariants[0].size : '');
                     }
                 } catch (err) {

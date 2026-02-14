@@ -535,6 +535,8 @@ const syncClover = async (req, res) => {
                 }
             } catch (e) {
                 console.error('Clover fetch items error:', e.message || e);
+                report.items.errors++; // Count as at least one error
+                report.items.lastError = e.message || String(e); // Expose error to UI
             }
 
             // 3. Fetch orders

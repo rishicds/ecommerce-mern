@@ -34,11 +34,14 @@ class CloverService {
     try {
       let allItems = [];
       let offset = 0;
-      const limit = 100;
+      const limit = 50; // Reduced from 100 to avoid timeouts/payload issues
 
       console.log('Starting full product fetch from Clover...');
 
       while (true) {
+        // Add a small delay to avoid rate limiting
+        if (offset > 0) await new Promise(r => setTimeout(r, 200));
+
         const response = await fetch(`${this.baseUrl}/${this.merchantId}/items?expand=categories,tags,itemStock,itemGroup,modifierGroups,taxRates,revenueClass,images,attributes,options,variants&limit=${limit}&offset=${offset}`, { // Expanded revenueClass and images
           method: 'GET',
           headers: this.getHeaders()

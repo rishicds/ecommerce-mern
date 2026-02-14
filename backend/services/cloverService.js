@@ -207,42 +207,54 @@ class CloverService {
     }
   }
 
-  async createProductInClover(productData) {
+  async createProductInClover(productData, itemGroupId = null) {
     if (!this.merchantId || !this.apiToken) return null;
     try {
+      const payload = {
+        name: productData.name,
+        price: Math.round(productData.price * 100), // Clover uses cents
+        sku: productData.sku,
+        hidden: !productData.showOnPOS
+      };
+
+      if (itemGroupId) {
+        payload.itemGroup = { id: itemGroupId };
+      }
+
       const response = await fetch(`${this.baseUrl}/${this.merchantId}/items`, {
         method: 'POST',
         headers: this.getHeaders(),
-        body: JSON.stringify({
-          name: productData.name,
-          price: Math.round(productData.price * 100), // Clover uses cents
-          sku: productData.sku,
-          hidden: !productData.showOnPOS
-        })
+        body: JSON.stringify(payload)
       });
       if (!response.ok) throw new Error(`Clover API Error: ${response.statusText}`);
       return await response.json();
     } catch (error) {
       console.error('Error creating product in Clover:', error);
-      throw error;
+      throw error; // Re-throw to handle in controller
     }
   }
 
-  async updateProductInClover(cloverId, productData) {
+  async updateProductInClover(cloverId, productData, itemGroupId = null) {
     if (!this.merchantId || !this.apiToken) return null;
     try {
       const url = `${this.baseUrl}/${this.merchantId}/items/${cloverId}`;
       console.log(`[Clover] Updating product ${cloverId} at ${url}`);
 
+      const payload = {
+        name: productData.name,
+        price: Math.round(productData.price * 100),
+        sku: productData.sku,
+        hidden: !productData.showOnPOS
+      };
+
+      if (itemGroupId) {
+        payload.itemGroup = { id: itemGroupId };
+      }
+
       const response = await fetch(url, {
         method: 'POST', // Clover often uses POST for updates
         headers: this.getHeaders(),
-        body: JSON.stringify({
-          name: productData.name,
-          price: Math.round(productData.price * 100),
-          sku: productData.sku,
-          hidden: !productData.showOnPOS
-        })
+        body: JSON.stringify(payload)
       });
       if (!response.ok) {
         console.error(`[Clover] Update failed: ${response.status} ${response.statusText}`);
@@ -254,6 +266,46 @@ class CloverService {
       return await response.json();
     } catch (error) {
       console.error('Error updating product in Clover:', error);
+      throw error;
+    }
+  }
+
+  async createItemGroup(name) {
+    if (!this.merchantId || !this.apiToken) return null;
+    try {
+      const response = await fetch(`${this.baseUrl}/${this.merchantId}/item_groups`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({ name })
+      });
+      if (!response.ok) {
+        const errBody = await response.text();
+        console.error(`[Clover] Create Item Group Failed: ${response.status} ${errBody}`);
+        throw new Error(`Clover API Error: ${response.statusText} - ${errBody}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Error creating item group in Clover:', error);
+      throw error;
+    }
+  }
+
+  async updateItemGroup(groupId, name) {
+    if (!this.merchantId || !this.apiToken) return null;
+    try {
+      const response = await fetch(`${this.baseUrl}/${this.merchantId}/item_groups/${groupId}`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({ name })
+      });
+      if (!response.ok) {
+        const errBody = await response.text();
+        console.error(`[Clover] Update Item Group Failed: ${response.status} ${errBody}`);
+        throw new Error(`Clover API Error: ${response.statusText} - ${errBody}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Error updating item group in Clover:', error);
       throw error;
     }
   }

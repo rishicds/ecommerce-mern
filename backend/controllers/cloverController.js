@@ -29,6 +29,116 @@ const syncProducts = async (req, res) => {
             }
         });
 
+        // --- SMART GROUPING STRATEGY ---
+        const finalStandalone = [];
+
+        // 1. Index Existing Group Names (using Common Prefix)
+        const groupNameMap = new Map();
+        const groupIdToNameMap = new Map(); // Map GroupID -> Common Prefix Name
+
+        for (const gid in groups) {
+            const items = groups[gid];
+            if (items.length > 0) {
+                // Calculate Longest Common Prefix (Case Insensitive for Matching)
+                let prefix = items[0].name.trim().toLowerCase();
+                for (let k = 1; k < items.length; k++) {
+                    const current = items[k].name.trim().toLowerCase();
+                    let l = 0;
+                    while (l < prefix.length && l < current.length && prefix[l] === current[l]) {
+                        l++;
+                    }
+                    prefix = prefix.substring(0, l);
+                }
+
+                // Heuristic: Enforce min length 3
+                let matchKey = items[0].name.trim().toLowerCase();
+                if (prefix.length >= 3) {
+                    matchKey = prefix.trim();
+                }
+                groupNameMap.set(matchKey, gid);
+
+                // Calculate Display Name (Case Preserved)
+                let displayPrefix = items[0].name.trim();
+                for (let k = 1; k < items.length; k++) {
+                    const current = items[k].name.trim();
+                    let l = 0;
+                    while (l < displayPrefix.length && l < current.length && displayPrefix[l] === current[l]) {
+                        l++;
+                    }
+                    displayPrefix = displayPrefix.substring(0, l);
+                }
+                if (displayPrefix.length < 3) displayPrefix = items[0].name.trim();
+
+                groupIdToNameMap.set(gid, displayPrefix.trim());
+            }
+        }
+
+        // 2. Pass 1: Merge Standalone into Existing Groups
+        const unmatchedStandalone = [];
+        for (const item of standalone) {
+            let merged = false;
+            const itemName = item.name.trim().toLowerCase();
+
+            // Find best match (longest prefix)
+            let bestMatchId = null;
+            let bestMatchLen = 0;
+
+            for (const [gName, gId] of groupNameMap.entries()) {
+                if (itemName === gName || itemName.startsWith(gName + ' ') || itemName.startsWith(gName + '-')) {
+                    if (gName.length > bestMatchLen) {
+                        bestMatchLen = gName.length;
+                        bestMatchId = gId;
+                    }
+                }
+            }
+
+            if (bestMatchId) {
+                groups[bestMatchId].push(item);
+                merged = true;
+                console.log(`Merged Standalone Item "${item.name}" into Group "${Array.from(groupNameMap.keys()).find(key => groupNameMap.get(key) === bestMatchId)}" (${bestMatchId})`);
+            }
+
+            if (!merged) unmatchedStandalone.push(item);
+        }
+
+        // 3. Pass 2: Cluster Remaining Standalone Items (Parent/Variant pattern)
+        // Sort alphabetically to put "Allo 500" before "Allo 500 Strawberry"
+        unmatchedStandalone.sort((a, b) => a.name.localeCompare(b.name));
+
+        let i = 0;
+        while (i < unmatchedStandalone.length) {
+            const parent = unmatchedStandalone[i];
+            const parentNameLower = parent.name.trim().toLowerCase();
+            const cluster = [parent];
+
+            let j = i + 1;
+            while (j < unmatchedStandalone.length) {
+                const candidate = unmatchedStandalone[j];
+                const candidateName = candidate.name.trim().toLowerCase();
+
+                // Check strict prefix match (ensure word boundary)
+                if (candidateName.startsWith(parentNameLower + ' ') || candidateName.startsWith(parentNameLower + '-')) {
+                    cluster.push(candidate);
+                    j++;
+                } else {
+                    break;
+                }
+            }
+
+            if (cluster.length > 1) {
+                // Create new synthetic group
+                const newGroupId = `smart_group_${parent.id}`;
+                groups[newGroupId] = cluster;
+                console.log(`Smart Group Created: ${parent.name} -> ${cluster.length} variants`);
+                i = j; // Skip all clustered items
+            } else {
+                // No variants found, keep as standalone
+                finalStandalone.push(parent);
+                i++;
+            }
+        }
+        // -------------------------------
+
         let syncedCount = 0;
         let errorCount = 0;
         const errors = [];
@@ -44,10 +154,28 @@ const syncProducts = async (req, res) => {
             console.log(`Processing Group ${groupId} - ${items.length} items. First Item: ${firstItem.name}`);
 
             try {
-                // Try to find existing Product by cloverItemGroupId
-                let product = await Product.findOne({ cloverItemGroupId: groupId });
+                // Find ALL existing products matching this group (to merge duplicates)
+                const existingProducts = await Product.find({
+                    $or: [
+                        { cloverItemGroupId: groupId },
+                        { cloverItemGroupId: `clover_group_${groupId}` }
+                    ]
+                });
 
-                const mainName = firstItem.name;
+                let product = null;
+                if (existingProducts.length > 0) {
+                    product = existingProducts[0];
+                    // If duplicates exist, delete them
+                    if (existingProducts.length > 1) {
+                        console.log(`[Sync] Found ${existingProducts.length} duplicates for Group ${groupId}. Merging...`);
+                        for (let k = 1; k < existingProducts.length; k++) {
+                            await Product.findByIdAndDelete(existingProducts[k]._id);
+                            console.log(`[Sync] Deleted duplicate product ${existingProducts[k]._id}`);
+                        }
+                    }
+                }
+
+                const mainName = groupIdToNameMap.get(groupId) || firstItem.name;
 
                 // Construct Variants with Robust Strategy
                 const variants = items.map(item => {
@@ -59,9 +187,10 @@ const syncProducts = async (req, res) => {
                         item.attributes.elements.forEach(attr => {
                             const attrName = (attr.name || "").toLowerCase();
                             if (attrName.includes("flavour") || attrName.includes("flavor")) {
-                                flavour = attr.value;
+                                flavour = (attr.value || "").trim();
+                                if (item.name.includes("Allo 500")) console.log(`[Debug] Item "${item.name}" - Found Flavor attr: "${flavour}"`);
                             } else if (attrName.includes("size") || attrName.includes("capacity")) {
-                                size = attr.value;
+                                size = (attr.value || "").trim();
                             }
                         });
                     }
@@ -122,6 +251,11 @@ const syncProducts = async (req, res) => {
                 // Calculate total stock
                 const totalStock = variants.reduce((acc, v) => acc + (v.quantity || 0), 0);
 
+                if (firstItem.name.includes("Allo 500")) {
+                    console.log(`[Debug] Allo 500 Variant 0 Flavour: "${variants[0].flavour}"`);
+                    console.log(`[Debug] Allo 500 Variant 0 Size: "${variants[0].size}"`);
+                }
+
                 if (!product) {
                     product = new Product({
                         cloverItemGroupId: groupId,
@@ -162,7 +296,7 @@ const syncProducts = async (req, res) => {
         }
 
         // 4. Process Standalone Items
-        for (const item of standalone) {
+        for (const item of finalStandalone) {
             try {
                 let product = await Product.findOne({ externalCloverId: item.id });
                 const stock = item.itemStock ? item.itemStock.quantity : 0;

@@ -193,7 +193,71 @@ const addProduct = async (req, res) => {
             console.error('Failed to emit productCreated socket event:', e);
         }
 
-        res.json({ success: true, message: "Product added successfully" });
+        // --- AUTO-SYNC TO CLOVER ---
+        let cloverSync = { status: 'skipped', message: '' };
+        try {
+            if (cloverService.isConfigured()) {
+                console.log(`[Auto-Sync] Creating product "${product.name}" in Clover...`);
+
+                if (product.variants && product.variants.length > 0) {
+                    // 1. Create Item Group
+                    const group = await cloverService.createItemGroup(product.name);
+                    if (group && group.id) {
+                        console.log(`[Auto-Sync] Created Item Group: ${group.id}`);
+                        product.cloverItemGroupId = group.id;
+
+                        // 2. Create Variants as Items linked to Group
+                        for (let i = 0; i < product.variants.length; i++) {
+                            const v = product.variants[i];
+                            const variantName = `${product.name} ${v.flavour || ''} ${v.size || ''}`.trim();
+                            const variantSku = v.sku || `${product.productId}-${i + 1}`;
+
+                            const cloverItem = await cloverService.createProductInClover({
+                                name: variantName,
+                                price: v.price || product.price,
+                                sku: variantSku,
+                                showOnPOS: product.showOnPOS
+                            }, group.id);
+
+                            if (cloverItem && cloverItem.id) {
+                                product.variants[i].cloverItemId = cloverItem.id;
+                                // Sync Stock
+                                if (v.quantity !== undefined) {
+                                    await cloverService.updateInventory(cloverItem.id, v.quantity);
+                                }
+                            }
+                        }
+                        await product.save(); // Save Clover IDs
+                        cloverSync = { status: 'success', message: 'Synced to Clover' };
+                    }
+                } else {
+                    // Standalone Item
+                    const cloverItem = await cloverService.createProductInClover({
+                        name: product.name,
+                        price: product.price,
+                        sku: product.productId,
+                        showOnPOS: product.showOnPOS
+                    });
+
+                    if (cloverItem && cloverItem.id) {
+                        console.log(`[Auto-Sync] Created Standalone Item: ${cloverItem.id}`);
+                        product.externalCloverId = cloverItem.id;
+                        // Sync Stock
+                        if (product.stockCount !== undefined) {
+                            await cloverService.updateInventory(cloverItem.id, product.stockCount);
+                        }
+                        await product.save();
+                        cloverSync = { status: 'success', message: 'Synced to Clover' };
+                    }
+                }
+            }
+        } catch (syncErr) {
+            console.error('[Auto-Sync] Failed to sync new product to Clover:', syncErr.message);
+            cloverSync = { status: 'failed', message: syncErr.message };
+            // Don't fail the request, just log and return status
+        }
+
+        res.json({ success: true, message: "Product added successfully", cloverSync });
     } catch (error) {
         console.error("Add Product Error:", error);
         res.status(500).json({ success: false, message: error.message });
@@ -342,6 +406,9 @@ const updateProduct = async (req, res) => {
 
         const { productId, name, description, price, categories, flavour, variants, stockCount, inStock, showOnPOS, otherFlavours, bestseller, sweetnessLevel, mintLevel } = req.body;
 
+        console.log('[DEBUG] addProduct variants type:', typeof variants);
+        console.log('[DEBUG] addProduct variants value:', variants);
+
         // Validate core fields (images optional on update)
         const { error, value } = productSchema.validate(
             { productId, name, description, price, categories, flavour, variants, stockCount, inStock, showOnPOS, otherFlavours, bestseller, sweetnessLevel, mintLevel },
@@ -445,13 +512,14 @@ const updateProduct = async (req, res) => {
         product.sweetnessLevel = value.sweetnessLevel !== undefined ? Number(value.sweetnessLevel) : product.sweetnessLevel;
         product.mintLevel = value.mintLevel !== undefined ? Number(value.mintLevel) : product.mintLevel;
 
-        // If product was previously out of stock and now restocked, notify waitlist
         if (prevStock === 0 && newStock > 0) {
             try {
+                // ... (existing waitlist logic) ...
                 // find users who are waiting for this product
                 const key = product._id.toString();
                 const waitingUsers = await User.find({ [`notifications_waitlist.${key}`]: true });
                 for (const u of waitingUsers) {
+                    // ... (existing notification logic) ...
                     u.notifications = u.notifications || [];
                     // Deduplicate: skip if there is already an unread notification for this product
                     const alreadyUnread = (u.notifications || []).some(n => n.productId && n.productId.toString() === key && !n.read);
@@ -506,25 +574,149 @@ const updateProduct = async (req, res) => {
 
         await product.save();
 
-        // Emit product update via Socket.IO so clients can refresh UI live
-        // Best-effort: update item on Clover
-        /*
-        // Auto-sync disabled per user request
+        // --- AUTO-SYNC TO CLOVER (UPDATE) ---
         try {
             if (cloverService.isConfigured()) {
-                const clId = product.externalCloverId || product.productId || product._id.toString();
-                const updated = await cloverService.updateProductInClover(clId, product).catch(() => null);
-                // If no external id was present but update returned an id, save it
-                const returnedId = updated && (updated.id || updated.itemId || updated._id || updated.externalId);
-                if (!product.externalCloverId && returnedId) {
-                    product.externalCloverId = String(returnedId);
-                    await product.save();
+                console.log(`[Auto-Sync] Updating product "${product.name}" in Clover...`);
+
+                if (product.cloverItemGroupId) {
+                    // It's a Grouped Product
+                    // 1. Update Group Name
+                    try {
+                        await cloverService.updateItemGroup(product.cloverItemGroupId, product.name);
+                    } catch (grpErr) {
+                        console.warn(`[Auto-Sync] Update Group Name failed (continuing to variants): ${grpErr.message}`);
+                    }
+
+                    // 2. Sync Variants
+                    // We need to iterate current variants and sync each
+                    for (let i = 0; i < product.variants.length; i++) {
+                        const v = product.variants[i];
+                        const variantName = `${product.name} ${v.flavour || ''} ${v.size || ''}`.trim();
+                        const variantSku = v.sku || `${product.productId}-${i + 1}`;
+
+                        if (v.cloverItemId) {
+                            // Update existing item
+                            // NOTE: Clover forbids changing name of item in a group via API.
+                            // We only sync Price/SKU/ShowOnPOS. Group Name update should cascade for the prefix.
+                            await cloverService.updateProductInClover(v.cloverItemId, {
+                                // name: variantName, // CANNOT UPDATE NAME
+                                price: v.price || product.price,
+                                sku: variantSku,
+                                showOnPOS: product.showOnPOS
+                            }, product.cloverItemGroupId);
+                            // Sync Stock
+                            if (v.quantity !== undefined) {
+                                await cloverService.updateInventory(v.cloverItemId, v.quantity);
+                            }
+                        } else {
+                            // Create new variant item in Clover
+                            const cloverItem = await cloverService.createProductInClover({
+                                name: variantName,
+                                price: v.price || product.price,
+                                sku: variantSku,
+                                showOnPOS: product.showOnPOS
+                            }, product.cloverItemGroupId);
+
+                            if (cloverItem && cloverItem.id) {
+                                product.variants[i].cloverItemId = cloverItem.id;
+                                if (v.quantity !== undefined) {
+                                    await cloverService.updateInventory(cloverItem.id, v.quantity);
+                                }
+                            }
+                        }
+                    }
+                    await product.save(); // Save new IDs if any
+
+                } else if (product.variants && product.variants.length > 0) {
+                    // Has variants but NO Group ID? Maybe it was a standalone that got variants added?
+                    // Or sync failed previously.
+                    // Promote to Group
+                    const group = await cloverService.createItemGroup(product.name);
+                    if (group && group.id) {
+                        console.log(`[Auto-Sync] Created New Item Group for Update: ${group.id}`);
+                        product.cloverItemGroupId = group.id;
+
+                        // If there was an externalCloverId (from standalone), can we reuse it?
+                        // We might want to "convert" the standalone item to a variant or delete it and create fresh variants.
+                        // Safest is to treat current variants as truth.
+                        // If externalCloverId exists and matches one variant, use it. Else, maybe keep it as one variant?
+                        // For simplicity: Create/Update variants as new items generally, unless we can map.
+
+                        // Let's just create variants. If externalCloverId exists, we could try to update it to be the first variant.
+
+                        for (let i = 0; i < product.variants.length; i++) {
+                            const v = product.variants[i];
+                            const variantName = `${product.name} ${v.flavour || ''} ${v.size || ''}`.trim();
+                            const variantSku = v.sku || `${product.productId}-${i + 1}`;
+
+                            // If this variant happens to preserve the old Id?
+                            let itemId = v.cloverItemId;
+                            if (!itemId && i === 0 && product.externalCloverId) {
+                                itemId = product.externalCloverId; // Reuse the old standalone ID for 1st variant
+                            }
+
+                            if (itemId) {
+                                await cloverService.updateProductInClover(itemId, {
+                                    name: variantName,
+                                    price: v.price || product.price,
+                                    sku: variantSku,
+                                    showOnPOS: product.showOnPOS
+                                }, group.id);
+                                product.variants[i].cloverItemId = itemId;
+                            } else {
+                                const cloverItem = await cloverService.createProductInClover({
+                                    name: variantName,
+                                    price: v.price || product.price,
+                                    sku: variantSku,
+                                    showOnPOS: product.showOnPOS
+                                }, group.id);
+                                if (cloverItem && cloverItem.id) {
+                                    product.variants[i].cloverItemId = cloverItem.id;
+                                }
+                            }
+                        }
+                        product.externalCloverId = undefined; // Clear standalone ID since we are now grouped
+                        await product.save();
+                    }
+
+                } else {
+                    // Standalone Product
+                    const clId = product.externalCloverId || product.productId;
+                    // If we have an external ID, update it
+                    if (product.externalCloverId) {
+                        await cloverService.updateProductInClover(product.externalCloverId, {
+                            name: product.name,
+                            price: product.price,
+                            sku: product.productId,
+                            showOnPOS: product.showOnPOS
+                        });
+                        if (product.stockCount !== undefined) {
+                            await cloverService.updateInventory(product.externalCloverId, product.stockCount);
+                        }
+                    } else {
+                        // Create if not exists (rare for update, but possible if sync failed on create)
+                        const cloverItem = await cloverService.createProductInClover({
+                            name: product.name,
+                            price: product.price,
+                            sku: product.productId,
+                            showOnPOS: product.showOnPOS
+                        });
+                        if (cloverItem && cloverItem.id) {
+                            product.externalCloverId = cloverItem.id;
+                            if (product.stockCount !== undefined) {
+                                await cloverService.updateInventory(cloverItem.id, product.stockCount);
+                            }
+                            await product.save();
+                        }
+                    }
                 }
             }
-        } catch (clErr) {
-            console.error('Failed to update product on Clover:', clErr.message || clErr);
+        } catch (syncErr) {
+            console.error('[Auto-Sync] Failed to sync updated product to Clover:', syncErr.message);
         }
-        */
+
+        // Emit product update via Socket.IO so clients can refresh UI live
         try {
             const io = getIO();
             if (io) {

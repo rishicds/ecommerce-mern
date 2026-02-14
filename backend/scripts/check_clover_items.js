@@ -1,8 +1,6 @@
 
-import dotenv from 'dotenv';
+import 'dotenv/config'; // Load env before other imports
 import cloverService from '../services/cloverService.js';
-
-dotenv.config();
 
 console.log("STARTING SCRIPT");
 

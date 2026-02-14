@@ -1,9 +1,9 @@
 
-import dotenv from 'dotenv';
+import 'dotenv/config';
 import mongoose from 'mongoose';
 import { syncProducts } from '../controllers/cloverController.js';
 
-dotenv.config();
+// dotenv.config(); // Removed redundant call
 
 const connectDB = async () => {
     try {

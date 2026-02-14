@@ -69,8 +69,8 @@ async function upsertCloverProduct(groupData) {
         }
 
         const groupObj = mainItem.itemGroup;
-        // Priority: Stored Group Name > Item's embedded group name > Main Item Name
-        name = groupName || ((groupObj && groupObj.name) ? groupObj.name : mainItem.name);
+        // Priority: Override Name > Stored Group Name > Item's embedded group name > Main Item Name
+        name = groupData.overrideName || groupName || ((groupObj && groupObj.name) ? groupObj.name : mainItem.name);
 
         // User requested: productId should be the Item ID (mainItem.id), and grouping ID should be prefixed
         productId = mainItem.id;
@@ -92,8 +92,28 @@ async function upsertCloverProduct(groupData) {
                 }
             });
 
+            // Attributes Parsing for Flavour/Size
+            let flavour = "";
+            let size = "";
+
+            if (it.attributes && it.attributes.elements) {
+                it.attributes.elements.forEach(attr => {
+                    const attrName = (attr.name || "").toLowerCase();
+                    if (attrName.includes("flavour") || attrName.includes("flavor")) {
+                        flavour = (attr.value || "").trim();
+                    } else if (attrName.includes("size") || attrName.includes("capacity")) {
+                        size = (attr.value || "").trim();
+                    }
+                });
+            }
+
+            // Fallback: Use Name
+            if (!flavour) flavour = it.name;
+            if (!size) size = it.name;
+
             return {
-                size: it.name || 'Option',
+                size: size,
+                flavour: flavour,
                 price: (it.price != null) ? (Number(it.price) / 100) : (it.priceFloat || 0),
                 cost: (it.cost != null) ? (Number(it.cost) / 100) : 0,
                 quantity: (it.itemStock && it.itemStock.quantity != null) ? Number(it.itemStock.quantity) : ((it.quantity != null) ? Number(it.quantity) : 0),
@@ -145,13 +165,27 @@ async function upsertCloverProduct(groupData) {
         // Try finding by new grouping ID OR old grouping ID/ProductId to support migration
         // We want to find if we already have this group imported
         const groupIdentifier = `clover_group_${groupId}`;
-        existing = await Product.findOne({
+
+        // Find ALL existing products matching this group (to merge duplicates)
+        const existingProducts = await Product.find({
             $or: [
                 { cloverItemGroupId: groupIdentifier }, // New format
                 { cloverItemGroupId: String(groupId) }, // Old format
                 { productId: `clover_group_${groupId}` } // Old productId format
             ]
         });
+
+        if (existingProducts.length > 0) {
+            existing = existingProducts[0];
+            // If duplicates exist, delete them
+            if (existingProducts.length > 1) {
+                console.log(`[Sync] Found ${existingProducts.length} duplicates for Group ${groupId}. Merging...`);
+                for (let k = 1; k < existingProducts.length; k++) {
+                    await Product.findByIdAndDelete(existingProducts[k]._id);
+                    console.log(`[Sync] Deleted duplicate product ${existingProducts[k]._id}`);
+                }
+            }
+        }
     } else if (externalCloverId) {
         existing = await Product.findOne({ externalCloverId: String(externalCloverId) });
     }
@@ -504,19 +538,131 @@ const syncClover = async (req, res) => {
                 const items = await cloverService.getProducts();
                 if (Array.isArray(items)) {
                     const groups = {}; // groupId -> [items]
-                    const singles = [];
+                    const standalone = [];
+                    const finalStandalone = [];
 
+                    // Initial Split
                     for (const item of items) {
                         if (item.itemGroup && item.itemGroup.id) {
                             if (!groups[item.itemGroup.id]) groups[item.itemGroup.id] = [];
                             groups[item.itemGroup.id].push(item);
                         } else {
-                            singles.push(item);
+                            standalone.push(item);
                         }
                     }
 
-                    // Process Singles
-                    for (const s of singles) {
+                    // --- SMART GROUPING STRATEGY ---
+
+                    // 1. Index Existing Group Names (using Common Prefix)
+                    const groupNameMap = new Map();
+                    const groupIdToNameMap = new Map(); // Map GroupID -> Common Prefix Name
+
+                    for (const gid in groups) {
+                        const items = groups[gid];
+                        if (items.length > 0) {
+                            // Calculate Longest Common Prefix (Case Insensitive for Matching)
+                            let prefix = items[0].name.trim().toLowerCase();
+                            for (let k = 1; k < items.length; k++) {
+                                const current = items[k].name.trim().toLowerCase();
+                                let l = 0;
+                                while (l < prefix.length && l < current.length && prefix[l] === current[l]) {
+                                    l++;
+                                }
+                                prefix = prefix.substring(0, l);
+                            }
+
+                            // Heuristic: Enforce min length 3
+                            let matchKey = items[0].name.trim().toLowerCase();
+                            if (prefix.length >= 3) {
+                                matchKey = prefix.trim();
+                            }
+                            groupNameMap.set(matchKey, gid);
+
+                            // Calculate Display Name (Case Preserved)
+                            let displayPrefix = items[0].name.trim();
+                            for (let k = 1; k < items.length; k++) {
+                                const current = items[k].name.trim();
+                                let l = 0;
+                                while (l < displayPrefix.length && l < current.length && displayPrefix[l] === current[l]) {
+                                    l++;
+                                }
+                                displayPrefix = displayPrefix.substring(0, l);
+                            }
+                            if (displayPrefix.length < 3) displayPrefix = items[0].name.trim();
+
+                            groupIdToNameMap.set(gid, displayPrefix.trim());
+                        }
+                    }
+
+                    // 2. Pass 1: Merge Standalone into Existing Groups
+                    const unmatchedStandalone = [];
+                    for (const item of standalone) {
+                        let merged = false;
+                        const itemName = item.name.trim().toLowerCase();
+
+                        // Find best match (longest prefix)
+                        let bestMatchId = null;
+                        let bestMatchLen = 0;
+
+                        for (const [gName, gId] of groupNameMap.entries()) {
+                            if (itemName === gName || itemName.startsWith(gName + ' ') || itemName.startsWith(gName + '-')) {
+                                if (gName.length > bestMatchLen) {
+                                    bestMatchLen = gName.length;
+                                    bestMatchId = gId;
+                                }
+                            }
+                        }
+
+                        if (bestMatchId) {
+                            groups[bestMatchId].push(item);
+                            merged = true;
+                            console.log(`[Sync] Merged Standalone Item "${item.name}" into Group "${Array.from(groupNameMap.keys()).find(key => groupNameMap.get(key) === bestMatchId)}" (${bestMatchId})`);
+                        }
+
+                        if (!merged) unmatchedStandalone.push(item);
+                    }
+
+                    // 3. Pass 2: Cluster Remaining Standalone Items (Parent/Variant pattern)
+                    // Sort alphabetically to put "Allo 500" before "Allo 500 Strawberry"
+                    unmatchedStandalone.sort((a, b) => a.name.localeCompare(b.name));
+
+                    let i = 0;
+                    while (i < unmatchedStandalone.length) {
+                        const parent = unmatchedStandalone[i];
+                        const parentNameLower = parent.name.trim().toLowerCase();
+                        const cluster = [parent];
+
+                        let j = i + 1;
+                        while (j < unmatchedStandalone.length) {
+                            const candidate = unmatchedStandalone[j];
+                            const candidateName = candidate.name.trim().toLowerCase();
+
+                            // Check strict prefix match (ensure word boundary)
+                            if (candidateName.startsWith(parentNameLower + ' ') || candidateName.startsWith(parentNameLower + '-')) {
+                                cluster.push(candidate);
+                                j++;
+                            } else {
+                                break;
+                            }
+                        }
+
+                        if (cluster.length > 1) {
+                            // Create new synthetic group
+                            const newGroupId = `smart_group_${parent.id}`;
+                            groups[newGroupId] = cluster;
+                            // Add to name map for display
+                            groupIdToNameMap.set(newGroupId, parent.name.trim());
+                            console.log(`[Sync] Smart Group Created: ${parent.name} -> ${cluster.length} variants`);
+                            i = j; // Skip all clustered items
+                        } else {
+                            // No variants found, keep as standalone
+                            finalStandalone.push(parent);
+                            i++;
+                        }
+                    }
+
+                    // Process Singles (Final)
+                    for (const s of finalStandalone) {
                         try {
                             const r = await upsertCloverProduct({ type: 'single', item: s });
                             if (r.action === 'created') report.items.created++;
@@ -524,10 +670,12 @@ const syncClover = async (req, res) => {
                         } catch (e) { console.error('Single item upsert error:', e); report.items.errors++; }
                     }
 
-                    // Process Groups
+                    // Process Groups (Final)
                     for (const groupId in groups) {
                         try {
-                            const r = await upsertCloverProduct({ type: 'group', groupId, items: groups[groupId] });
+                            // Pass overrideName from common prefix map
+                            const overrideName = groupIdToNameMap.get(groupId);
+                            const r = await upsertCloverProduct({ type: 'group', groupId, items: groups[groupId], overrideName });
                             if (r.action === 'created') report.items.created++;
                             else if (r.action === 'updated') report.items.updated++;
                         } catch (e) { console.error('Group upsert error:', e); report.items.errors++; }

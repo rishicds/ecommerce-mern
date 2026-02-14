@@ -1,0 +1,35 @@
+--- Clover Service Initialized ---
+Environment: production
+Base URL: https://api.clover.com/v3/merchants
+Merchant ID: Set
+API Token: Set
+----------------------------------
+Connected to MongoDB
+--- 1. Testing Add Product (AUTO_SYNC_TEST_1771060188668) ---
+[Auto-Sync] Creating product "Test Auto Sync Product" in Clover...
+[Auto-Sync] Created Item Group: 00ZN30ZED51AW
+Controller Response: {
+  "success": true,
+  "message": "Product added successfully",
+  "cloverSync": {
+    "status": "success",
+    "message": "Synced to Clover"
+  }
+}
+Clover Sync Status: { status: 'success', message: 'Synced to Clover' }
+Product Created DB: new ObjectId('69903bdc7498ccadc7f9c492')
+Clover Group ID: 00ZN30ZED51AW
+Variants Clover IDs: [ '8TGFMHRA5VHXE', '78FK1YR3TRFWW' ]
+--- 2. Testing Update Product (AUTO_SYNC_TEST_1771060188668) ---
+[DEBUG] addProduct variants type: string
+[DEBUG] addProduct variants value: [{"size":"10ml","flavour":"Mint","price":12.99,"sku":"AUTO_SYNC_TEST_1771060188668-MINT","cloverItemId":"8TGFMHRA5VHXE","quantity":10},{"size":"10ml","flavour":"Berry","price":12.99,"sku":"AUTO_SYNC_TEST_1771060188668-BERRY","cloverItemId":"78FK1YR3TRFWW","quantity":10}]
+[Auto-Sync] Updating product "Test Auto Sync Product UPDATED" in Clover...
+[Clover] Updating product 8TGFMHRA5VHXE at https://api.clover.com/v3/merchants/S9XXBGG159T21/items/8TGFMHRA5VHXE
+[Clover] Updating product 78FK1YR3TRFWW at https://api.clover.com/v3/merchants/S9XXBGG159T21/items/78FK1YR3TRFWW
+Controller Response: {
+  "success": true,
+  "message": "Product updated successfully"
+}
+Product Updated DB Name: Test Auto Sync Product UPDATED
+--- 3. Clean up (DB Only) ---
+Test product deleted from DB.

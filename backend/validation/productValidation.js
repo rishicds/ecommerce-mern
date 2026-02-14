@@ -3,8 +3,12 @@ import Joi from "joi";
 const variantSchema = Joi.object({
     size: Joi.string().required(),
     price: Joi.number().positive().required(),
-    quantity: Joi.number().integer().min(0).required()
-});
+    quantity: Joi.number().integer().min(0).required(),
+    flavour: Joi.string().allow('', null).optional(),
+    sku: Joi.string().allow('', null).optional(),
+    image: Joi.string().allow('', null).optional(),
+    cloverItemId: Joi.string().allow('', null).optional()
+}).unknown(true);
 
 export const productSchema = Joi.object({
     productId: Joi.string().required(),

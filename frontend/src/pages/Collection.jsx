@@ -27,6 +27,8 @@ const reducer = (state, action) => {
     switch (action.type) {
         case 'TOGGLE_CATEGORY':
             return { ...state, category: toggleItem(state.category, action.payload) };
+        case 'SET_CATEGORY':
+            return { ...state, category: action.payload };
         // Legacy category toggles removed/merged
         case 'TOGGLE_SUBCATEGORY':
             return { ...state, subCategory: toggleItem(state.subCategory, action.payload) };
@@ -136,6 +138,23 @@ function Collection() {
     const [state, dispatch] = useReducer(reducer, initialState);
     const { category, subCategory, brand, flavour, flavourType, priceRange, nicotine, options, type, showFilter, filterProducts, sortOrder, currentPage, itemsPerPage } = state;
     const location = useLocation();
+
+    // Sync category from URL
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const categoryParam = params.get('category');
+        if (categoryParam) {
+            dispatch({ type: 'SET_CATEGORY', payload: [categoryParam] });
+        } else {
+            // Apply logic: if no category param, do we clear?
+            // Yes, standard navigation behavior.
+            const q = params.get('q');
+            if (!q) { // validation: if search is active, we might not want to clear category if it was somehow mixed, but usually search is global.
+                // simplified: just clear category if not in URL
+                dispatch({ type: 'SET_CATEGORY', payload: [] });
+            }
+        }
+    }, [location.search]);
 
     const [openSections, setOpenSections] = useState({
         category: true,

@@ -16,6 +16,7 @@ import Verify from "./pages/Verify";
 import Profile from "./pages/Profile";
 import { Routes, Route, Navigate, useLocation } from "react-router";
 import Navbar from "./components/Navbar";
+import CategoryNav from "./components/CategoryNav";
 
 import Footer from "./components/Footer";
 import SearchBar from "./components/SearchBar";
@@ -48,6 +49,7 @@ const App = () => {
     <div className="px-4 sm:px-[5%] md:px-[7%] lg:px-[9%]">
       <ToastContainer />
       <Navbar />
+      <CategoryNav />
 
       <AgeGate />
       <SearchBar />
@@ -58,13 +60,13 @@ const App = () => {
         <Route path="/collection" element={<Collection />} />
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
-        
+
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/terms-of-service" element={<TermsOfService />} />
-        
+
         <Route path="/product/:productId" element={<Product />} />
         <Route path="/cart" element={<Cart />} />
-        
+
         <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
         <Route path="/notifications" element={<PrivateRoute><Notifications /></PrivateRoute>} />
         <Route path="/orders" element={<PrivateRoute><Orders /></PrivateRoute>} />

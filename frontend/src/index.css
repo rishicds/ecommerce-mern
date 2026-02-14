@@ -2,28 +2,28 @@
 
 @import "tailwindcss";
 
-*{
-    font-family: Outfit;
+* {
+  font-family: Outfit;
 }
 
-body{
+body {
   margin: 0;
   overflow-x: hidden;
 }
 
 .prata-regular {
-    font-family: "Prata", serif;
-    font-weight: 400;
-    font-style: normal;
-  }
+  font-family: "Prata", serif;
+  font-weight: 400;
+  font-style: normal;
+}
 
-  ::-webkit-scrollbar{
-    display: none;
-  }
+::-webkit-scrollbar {
+  display: none;
+}
 
-  @media (max-width: 640px) {
-    a.active{
-        background-color: black;
-        color: white;
-    }
+@media (max-width: 640px) {
+  a.active {
+    background-color: black;
+    color: white;
   }
+}

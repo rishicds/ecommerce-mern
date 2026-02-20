@@ -599,12 +599,16 @@ const updateProduct = async (req, res) => {
                             // Update existing item
                             // NOTE: Clover forbids changing name of item in a group via API.
                             // We only sync Price/SKU/ShowOnPOS. Group Name update should cascade for the prefix.
-                            await cloverService.updateProductInClover(v.cloverItemId, {
-                                // name: variantName, // CANNOT UPDATE NAME
-                                price: v.price || product.price,
-                                sku: variantSku,
-                                showOnPOS: product.showOnPOS
-                            }, product.cloverItemGroupId);
+                            try {
+                                await cloverService.updateProductInClover(v.cloverItemId, {
+                                    // name: variantName, // CANNOT UPDATE NAME
+                                    price: v.price || product.price,
+                                    sku: variantSku,
+                                    showOnPOS: product.showOnPOS
+                                }, product.cloverItemGroupId);
+                            } catch (itemErr) {
+                                console.warn(`[Auto-Sync] Failed to update existing variant item ${v.cloverItemId} in Group: ${itemErr.message}`);
+                            }
                             // Sync Stock
                             if (v.quantity !== undefined) {
                                 await cloverService.updateInventory(v.cloverItemId, v.quantity);
@@ -657,13 +661,32 @@ const updateProduct = async (req, res) => {
                             }
 
                             if (itemId) {
-                                await cloverService.updateProductInClover(itemId, {
-                                    name: variantName,
-                                    price: v.price || product.price,
-                                    sku: variantSku,
-                                    showOnPOS: product.showOnPOS
-                                }, group.id);
-                                product.variants[i].cloverItemId = itemId;
+                                try {
+                                    await cloverService.updateProductInClover(itemId, {
+                                        name: variantName,
+                                        price: v.price || product.price,
+                                        sku: variantSku,
+                                        showOnPOS: product.showOnPOS
+                                    }, group.id);
+                                    product.variants[i].cloverItemId = itemId;
+                                } catch (itemErr) {
+                                    if (itemErr.message && itemErr.message.includes("Existing item cannot be added to item group")) {
+                                        console.warn(`[Auto-Sync] Item ${itemId} already in group or cannot be added. Retrying without group id...`);
+                                        try {
+                                            await cloverService.updateProductInClover(itemId, {
+                                                name: variantName,
+                                                price: v.price || product.price,
+                                                sku: variantSku,
+                                                showOnPOS: product.showOnPOS
+                                            });
+                                            product.variants[i].cloverItemId = itemId;
+                                        } catch (retryErr) {
+                                            console.warn(`[Auto-Sync] Failed to update variant item ${itemId} without group: ${retryErr.message}`);
+                                        }
+                                    } else {
+                                        console.warn(`[Auto-Sync] Failed to update variant item ${itemId} into new Group: ${itemErr.message}`);
+                                    }
+                                }
                             } else {
                                 const cloverItem = await cloverService.createProductInClover({
                                     name: variantName,

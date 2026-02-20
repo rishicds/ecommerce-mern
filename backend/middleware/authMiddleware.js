@@ -23,7 +23,12 @@ export const verifyAdmin = (req, res, next) => {
 
 export const verifyUser = async (req, res, next) => {
     try {
-        const token = req.cookies.user_token;
+        let token = req.cookies.user_token;
+        // fallback to Authorization header: Bearer <token>
+        if (!token && req.headers && req.headers.authorization) {
+            const parts = String(req.headers.authorization).split(' ');
+            if (parts.length === 2 && /^Bearer$/i.test(parts[0])) token = parts[1];
+        }
         if (!token) {
             return res.status(401).json({ success: false, message: "Unauthorized: No token provided" });
         }

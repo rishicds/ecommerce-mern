@@ -29,6 +29,7 @@ app.use(cors({
             process.env.FRONTEND_URL,
             process.env.ADMIN_URL,
             'https://www.knightstvapeshop.ca',
+            'https://knightstvapeshop.ca',
             'http://localhost:5173',
             'http://localhost:5174',
             'http://localhost:5175',

@@ -25,10 +25,14 @@ export const SyncProvider = ({ children }) => {
             setSyncFromStatus('working');
             const base = import.meta.env.VITE_BACKEND_URL || '';
             const url = `${base.replace(/\/$/, '')}/api/admin/sync/clover`;
-            const res = await fetch(url, { 
-                method: 'POST', 
+            const token = localStorage.getItem('admin_token');
+            const res = await fetch(url, {
+                method: 'POST',
                 credentials: 'include',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
                 body: JSON.stringify({ mode: 'pull' })
             });
             if (!res.ok) throw new Error(`Sync failed: ${res.status}`);
@@ -50,10 +54,14 @@ export const SyncProvider = ({ children }) => {
             setSyncToStatus('working');
             const base = import.meta.env.VITE_BACKEND_URL || '';
             const url = `${base.replace(/\/$/, '')}/api/admin/sync/clover`;
-            const res = await fetch(url, { 
-                method: 'POST', 
+            const token = localStorage.getItem('admin_token');
+            const res = await fetch(url, {
+                method: 'POST',
                 credentials: 'include',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
                 body: JSON.stringify({ mode: 'push' })
             });
             if (!res.ok) throw new Error(`Sync failed: ${res.status}`);

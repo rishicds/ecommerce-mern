@@ -42,7 +42,22 @@ export const AuthProvider = ({ children }) => {
     };
 
     useEffect(() => {
+        // Add request interceptor to inject admin token
+        const interceptor = axios.interceptors.request.use((config) => {
+            const token = localStorage.getItem('admin_token');
+            if (token) {
+                config.headers.Authorization = `Bearer ${token}`;
+            }
+            return config;
+        }, (error) => {
+            return Promise.reject(error);
+        });
+
         checkAuth();
+
+        return () => {
+            axios.interceptors.request.eject(interceptor);
+        };
     }, [])
 
     const login = async (email, password) => {
@@ -54,6 +69,9 @@ export const AuthProvider = ({ children }) => {
             );
 
             if (res.data.success) {
+                if (res.data.token) {
+                    localStorage.setItem('admin_token', res.data.token);
+                }
                 await checkAuth();
                 return true;
             } else {
@@ -70,6 +88,7 @@ export const AuthProvider = ({ children }) => {
         try {
             const res = await axios.post(`${backendUrl}/api/admin/logout`, {}, { withCredentials: true });
             if (res.data.success) {
+                localStorage.removeItem('admin_token');
                 setUser(null);
                 toast.success(res.data.message);
             } else {

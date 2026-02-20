@@ -438,7 +438,7 @@ const adminLogin = async (req, res) => {
             maxAge: 24 * 60 * 60 * 1000 // 1 day
         });
 
-        res.status(200).json({ success: true, message: "Logged in successfully." });
+        res.status(200).json({ success: true, message: "Logged in successfully.", token });
     } catch (err) {
         console.error("Admin Login Error:", err);
         res.status(500).json({ success: false, message: "Server error" });

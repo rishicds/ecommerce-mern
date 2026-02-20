@@ -45,7 +45,7 @@ const userLogin = async (req, res) => {
             maxAge: 24 * 60 * 60 * 1000 // 1 day
         });
 
-        return res.status(200).json({ success: true, user: user._id, message: "Successfully LoggedIn" });
+        return res.status(200).json({ success: true, user: user._id, token, message: "Successfully LoggedIn" });
 
     } catch (error) {
         console.error("User Login error:", error);
@@ -103,7 +103,7 @@ const registerUser = async (req, res) => {
         });
 
 
-        return res.status(200).json({ success: true, user: user._id, message: "Registration Success" });
+        return res.status(200).json({ success: true, user: user._id, token, message: "Registration Success" });
 
     } catch (error) {
         console.error("Registration error:", error);
@@ -119,9 +119,9 @@ const getUserData = (req, res) => {
     return res.status(200).json({
         success: true,
         message: "User is authenticated",
-        user: { 
-            _id: req.user._id, 
-            name: req.user.name, 
+        user: {
+            _id: req.user._id,
+            name: req.user.name,
             email: req.user.email,
             phone: req.user.phone || '',
             address: req.user.address || {},
@@ -163,11 +163,11 @@ const updateProfile = async (req, res) => {
         // Update user
         const updatedUser = await User.findByIdAndUpdate(
             userId,
-            { 
-                name, 
-                email, 
-                phone: phone || '', 
-                address: address || {} 
+            {
+                name,
+                email,
+                phone: phone || '',
+                address: address || {}
             },
             { new: true, runValidators: true }
         ).select('-password');
@@ -176,8 +176,8 @@ const updateProfile = async (req, res) => {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
 
-        return res.status(200).json({ 
-            success: true, 
+        return res.status(200).json({
+            success: true,
             message: 'Profile updated successfully',
             user: updatedUser
         });
@@ -362,17 +362,17 @@ const clearAllNotifications = async (req, res) => {
     }
 };
 
-export { 
-    userLogin, 
-    registerUser, 
-    getUserData, 
-    userLogout, 
-    updateProfile, 
-    addToWaitlist, 
-    getNotifications, 
-    markNotificationRead, 
-    checkWaitlist, 
-    deleteNotification, 
-    deleteReadNotifications, 
-    clearAllNotifications 
+export {
+    userLogin,
+    registerUser,
+    getUserData,
+    userLogout,
+    updateProfile,
+    addToWaitlist,
+    getNotifications,
+    markNotificationRead,
+    checkWaitlist,
+    deleteNotification,
+    deleteReadNotifications,
+    clearAllNotifications
 };

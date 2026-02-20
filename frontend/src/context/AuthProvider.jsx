@@ -25,13 +25,30 @@ export const AuthProvider = ({ children }) => {
     };
 
     useEffect(() => {
+        const interceptor = axios.interceptors.request.use((config) => {
+            const token = localStorage.getItem('user_token');
+            if (token) {
+                config.headers.Authorization = `Bearer ${token}`;
+            }
+            return config;
+        }, (error) => {
+            return Promise.reject(error);
+        });
+
         checkAuth();
+
+        return () => {
+            axios.interceptors.request.eject(interceptor);
+        };
     }, []);
-    
+
     const login = async (email, password) => {
         try {
             const res = await axios.post(`${backendUrl}/api/user/login`, { email, password }, { withCredentials: true });
             if (res.data.success) {
+                if (res.data.token) {
+                    localStorage.setItem('user_token', res.data.token);
+                }
                 await checkAuth();
                 navigate("/");
                 toast.success(res.data.message);
@@ -50,6 +67,9 @@ export const AuthProvider = ({ children }) => {
         try {
             const res = await axios.post(`${backendUrl}/api/user/register`, { name, email, password }, { withCredentials: true });
             if (res.data.success) {
+                if (res.data.token) {
+                    localStorage.setItem('user_token', res.data.token);
+                }
                 await checkAuth();
                 navigate("/")
                 toast.success(res.data.message);
@@ -68,6 +88,7 @@ export const AuthProvider = ({ children }) => {
         try {
             const res = await axios.post(`${backendUrl}/api/user/logout`, {}, { withCredentials: true });
             if (res.data.success) {
+                localStorage.removeItem('user_token');
                 setUser(null);
                 navigate("/login")
                 toast.success(res.data.message);
